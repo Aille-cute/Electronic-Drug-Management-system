@@ -1,0 +1,12 @@
+{
+  "name": "family-medicine-cabinet",
+  "version": "1.0.0",
+  "description": "家庭共享药库管理系统",
+  "main": "index.html",
+  "scripts": {
+    "build": "echo 'No build needed'"
+  },
+  "keywords": ["medicine", "health", "family", "management"],
+  "author": "Your Name",
+  "license": "MIT"
+}

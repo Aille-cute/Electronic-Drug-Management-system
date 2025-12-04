@@ -1,0 +1,4470 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>家庭共享药库管理系统</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="config.js"></script>
+    <style>
+        /* 恢复select元素的默认样式 */
+            .limited-options {
+                /* 确保select元素本身是常规大小 */
+                height: auto;
+            }
+
+        /* 屏幕阅读器专用 - 视觉上隐藏但可访问 */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --primary: #4a6fa5;
+            --primary-light: #6b8cbc;
+            --primary-dark: #3a5784;
+            --secondary: #ff7e5f;
+            --light: #f8f9fa;
+            --dark: #343a40;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --gray: #6c757d;
+            --gray-light: #e9ecef;
+            --border-radius: 8px;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: var(--dark);
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            position: relative;
+        }
+
+        header h1 {
+            color: var(--primary);
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+
+        header p {
+            color: var(--gray);
+            font-size: 1.1rem;
+        }
+
+        /* ========== 同步状态样式 ========== */
+        .sync-status {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            color: var(--gray);
+        }
+
+        .sync-indicator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .sync-indicator i {
+            font-size: 0.8rem;
+        }
+
+        .sync-indicator i.fa-spin {
+            color: var(--primary);
+        }
+
+        .sync-indicator i.fa-check-circle {
+            color: var(--success);
+        }
+
+        .sync-indicator i.fa-exclamation-circle {
+            color: var(--danger);
+        }
+
+        .manual-sync-btn {
+            padding: 5px 10px !important;
+            font-size: 0.8rem !important;
+            background: var(--primary-light) !important;
+        }
+
+        .manual-sync-btn:hover {
+            background: var(--primary) !important;
+        }
+
+        .admin-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        /* 确保管理面板内的卡片在所有屏幕尺寸下都能正确显示 */
+        .admin-panel > .card {
+            box-sizing: border-box;
+        }
+        
+        /* 用药计划卡片设置为flex垂直布局 */
+        .admin-panel > .card:last-child {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* 用药计划列表固定高度并添加滚动 */
+        .plans-list {
+            flex: 1;
+            overflow-y: auto;
+            max-height: calc(100% - 200px); /* 减去标题、按钮和表单的高度 */
+            min-height: 100px;
+        }
+        
+        /* 确保用药计划卡片与添加新药品卡片高度一致 */
+        .admin-panel > .card {
+            /* 高度将通过JavaScript动态设置 */
+        }
+
+        .card {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 25px;
+            min-width: 0; /* 允许卡片在容器中收缩 */
+            box-sizing: border-box;
+            /* 不设置固定宽度，由父容器决定 */
+        }
+        
+
+
+        .card h2 {
+            color: var(--primary);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--gray-light);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card h2 i {
+            color: var(--primary-light);
+        }
+        
+        /* 图片上传样式 */
+        .image-upload-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .image-preview {
+            width: 200px;
+            height: 200px;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            background-color: #f9f9f9;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        
+        .image-preview:hover {
+            border-color: var(--primary);
+            background-color: #f0f0f0;
+        }
+        
+        .image-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .image-preview i {
+            font-size: 48px;
+            color: #ccc;
+            margin-bottom: 10px;
+        }
+        
+        .image-preview p {
+            color: #666;
+            margin: 0;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid var(--gray-light);
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.2);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--gray);
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-success {
+            background: var(--success);
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: var(--danger);
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: var(--dark);
+        }
+
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+
+        .medicine-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .medicine-card {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            transition: var(--transition);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            border: 1px solid #ffeeba;
+            border-radius: var(--border-radius);
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #856404;
+        }
+
+        .alert-warning i {
+            margin-right: 10px;
+        }
+
+        /* 日期选择器样式 */
+        input[type="date"] {
+            cursor: pointer;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .plans-list {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .medicine-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .medicine-image {
+            width: 100%;
+            aspect-ratio: 3/2;
+            background: linear-gradient(135deg, var(--light) 0%, var(--gray-light) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .medicine-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+        
+        .medicine-card:hover .medicine-image img {
+            transform: scale(1.05); /* 悬停时图片轻微放大 */
+        }
+        
+        .medicine-image i {
+            font-size: 3.5rem;
+            color: var(--primary-light);
+            opacity: 0.7;
+        }
+
+        .medicine-info {
+            padding: 15px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .medicine-name {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 8px;
+            line-height: 1.3;
+        }
+
+        .medicine-details {
+            margin-bottom: 10px;
+            flex: 1;
+        }
+
+        .medicine-detail {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+            color: var(--gray);
+            font-size: 0.95rem;
+        }
+
+        .medicine-detail i {
+            width: 20px;
+            color: var(--primary-light);
+        }
+
+        .medicine-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .medicine-actions .btn {
+            flex: 1;
+            justify-content: center;
+            padding: 8px 12px;
+            font-size: 0.85rem;
+        }
+
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 50px 20px;
+            color: var(--gray);
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            color: var(--gray-light);
+        }
+
+        .empty-state h3 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 30px;
+            position: relative;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--gray);
+            z-index: 10;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: background-color 0.2s;
+        }
+
+        .modal-close:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        /* 裁剪功能样式 */
+        #cropCanvas {
+            cursor: crosshair;
+            background-color: #f5f5f5;
+            display: block;
+            margin: 0 auto;
+            max-width: 100%;
+        }
+        
+        #cropControls {
+            padding: 20px;
+            text-align: center;
+        }
+        
+        #cropControls button {
+            margin: 0 10px;
+        }
+
+        /* 用药计划样式 */
+        .plans-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .plan-card {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border-left: 4px solid var(--primary);
+        }
+
+        .plan-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+        }
+
+        .plan-card.paused {
+            border-left-color: var(--gray);
+            opacity: 0.7;
+        }
+
+        .plan-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .plan-header h3 {
+            margin: 0;
+            color: var(--primary);
+            font-size: 1.2rem;
+        }
+
+        .plan-status {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .plan-status.active {
+            background-color: var(--success-light);
+            color: var(--success);
+        }
+
+        .plan-status.stopped {
+            background-color: var(--gray-light);
+            color: var(--gray);
+        }
+
+        .plan-details {
+            margin-bottom: 20px;
+        }
+
+        .plan-detail {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            color: var(--gray-dark);
+        }
+
+        .plan-detail i {
+            margin-right: 10px;
+            color: var(--primary);
+        }
+
+        .plan-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .plan-actions .btn {
+            flex: 1;
+            min-width: 80px;
+            justify-content: center;
+        }
+
+        .empty-plans {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--gray);
+        }
+
+        .empty-plans i {
+            font-size: 4rem;
+            margin-bottom: 20px;
+            color: var(--gray-light);
+        }
+
+        /* 搜索选择框样式 */
+        .searchable-select {
+            position: relative;
+        }
+
+        .searchable-select input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid var(--gray-light);
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+
+        .searchable-select input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.2);
+        }
+
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 0 0 var(--border-radius) var(--border-radius);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 10;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .search-results div {
+            padding: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .search-results div:hover {
+            background-color: var(--light);
+        }
+
+        .search-results div.active {
+            background-color: var(--primary-light);
+            color: var(--primary-dark);
+        }
+
+        .modal-close:hover {
+            color: var(--danger);
+        }
+
+        .modal h2 {
+            color: var(--primary);
+            margin-bottom: 20px;
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-low {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-normal {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .status-empty {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .search-filter {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .search-filter input, .search-filter select {
+            flex: 1;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            background: var(--success);
+            color: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 1100;
+            transform: translateX(150%);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.error {
+            background: var(--danger);
+        }
+
+        .admin-login {
+            background: var(--light);
+            padding: 15px;
+            border-radius: var(--border-radius);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .admin-login input {
+            flex: 1;
+        }
+
+        .readonly-mode .admin-panel,
+        .readonly-mode .medicine-actions {
+            display: none;
+        }
+
+        /* 单位选择下拉菜单样式 */
+        .input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .unit-select {
+            padding: 12px 15px;
+            border: 1px solid var(--gray-light);
+            border-radius: var(--border-radius);
+            background-color: white;
+            color: var(--dark);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: var(--transition);
+            flex: 1;
+        }
+
+        .unit-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.2);
+        }
+
+        .input-group input {
+            flex: 2;
+        }
+
+        .input-group select {
+            flex: 1;
+            padding: 12px 15px;
+            border: 1px solid var(--gray-light);
+            border-radius: var(--border-radius);
+            background-color: white;
+            color: var(--dark);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .input-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            .medicine-list {
+                grid-template-columns: 1fr;
+            }
+            
+            .search-filter {
+                flex-direction: column;
+            }
+        }
+
+        /* ------------------- 自动完成组件样式 ------------------- */
+        .autocomplete-container {
+            position: relative;
+            width: 100%;
+        }
+        
+        .autocomplete-container {
+            position: relative;
+        }
+        
+        .autocomplete-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 200px;
+            overflow-y: auto;
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .autocomplete-item {
+            padding: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .autocomplete-item:hover {
+            background-color: var(--accent-light);
+        }
+            box-shadow: var(--shadow);
+            z-index: 1000;
+            display: none;
+        }
+        
+        .autocomplete-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.2s;
+        }
+        
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+        
+        .autocomplete-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .autocomplete-item strong {
+            color: var(--primary);
+            font-weight: 600;
+        }
+        
+        /* 滚动条样式 */
+        .autocomplete-results::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .autocomplete-results::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        /* 日志样式 */
+        .log-item {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 15px 20px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            transition: var(--transition);
+        }
+        
+        .log-item:hover {
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+        }
+        
+        .log-icon {
+            font-size: 1.5rem;
+            margin-top: 2px;
+        }
+        
+        .log-content {
+            flex: 1;
+        }
+        
+        .log-content strong {
+            color: var(--primary);
+        }
+        
+        .log-operator {
+            display: block;
+            font-size: 0.9rem;
+            color: var(--gray);
+            margin-top: 5px;
+            font-weight: normal;
+        }
+        
+        .autocomplete-results::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+        
+        .autocomplete-results::-webkit-scrollbar-thumb:hover {
+            background: #a1a1a1;
+        }
+
+        /* ========== 新增：数据统计卡片样式 ========== */
+        .data-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            min-height: 120px;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-card h3 {
+            color: var(--gray);
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-card .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-card .stat-desc {
+            font-size: 0.8rem;
+            color: var(--gray);
+        }
+
+        /* 统计卡片颜色主题 */
+        .stat-card.total { border-left: 4px solid var(--primary); }
+        .stat-card.low-stock { border-left: 4px solid var(--warning); }
+        .stat-card.out-of-stock { border-left: 4px solid var(--danger); }
+        .stat-card.plans { border-left: 4px solid #17a2b8; }
+
+        /* ========== 新增：同步时间显示样式 ========== */
+        .sync-time {
+            margin-top: 20px;
+            padding: 15px;
+            background: var(--light);
+            border-radius: var(--border-radius);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sync-time-label {
+            font-size: 0.9rem;
+            color: var(--gray);
+        }
+
+        .sync-time-value {
+            font-size: 1rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-pills"></i> 家庭共享药库管理系统</h1>
+            <p>药品管理助手 - 数据实时同步</p>
+            
+            <!-- 同步状态指示器 -->
+            <div class="sync-status">
+                <div id="syncIndicator" class="sync-indicator">
+                    <i class="fas fa-sync-alt"></i>
+                    <span id="syncText">同步中...</span>
+                </div>
+                <button id="manualSyncBtn" class="btn manual-sync-btn">
+                    <i class="fas fa-redo"></i> 立即同步
+                </button>
+            </div>
+        </header>
+
+        <div class="admin-login">
+            <label for="adminPassword" class="sr-only">管理员密码</label>
+            <input type="password" id="adminPassword" placeholder="输入管理员密码以编辑药品" aria-label="管理员密码输入框">
+            <button class="btn" id="loginBtn">解锁编辑</button>
+            <button class="btn btn-secondary" id="logoutBtn" style="display:none;">锁定编辑</button>
+            <button class="btn btn-info" id="viewLogsBtn" style="display:none;">查看修改记录</button>
+        </div>
+
+        <div class="admin-panel">
+            <div class="card">
+                <h2><i class="fas fa-plus-circle"></i> 添加新药品</h2>
+                <form id="medicineForm">
+                    <div class="form-group">
+                        <label for="medicineName">药品名称 *</label>
+                        <div class="autocomplete-container">
+                            <input type="text" id="medicineName" placeholder="输入药品名称" required aria-required="true">
+                            <div id="medicineNameResults" class="autocomplete-results"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                            <label for="medicineQuantity">新增数量 *</label>
+                            <div class="input-group">
+                                <input type="number" id="medicineQuantity" placeholder="输入新增数量" min="0" required aria-required="true">
+                                <select id="medicineUnit" class="unit-select" aria-label="选择库存单位">
+                                    <option value="">选择单位</option>
+                                    <option value="片">片</option>
+                                    <option value="粒">粒</option>
+                                    <option value="支">支</option>
+                                    <option value="包">包</option>
+                                    <option value="毫升">毫升</option>
+                                    <option value="瓶">瓶</option>
+                                    <option value="贴">贴</option>
+                                </select>
+                            </div>
+                        </div>
+                    
+                    <div class="form-group">
+                        <label for="medicineUsage">用法用量</label>
+                        <textarea id="medicineUsage" placeholder="输入用法用量（例如：每日两次，每次一片）" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="medicineImage">药品图片</label>
+                        <div class="image-upload-container">
+                            <div class="image-preview" id="medicineImagePreview" style="cursor: pointer;">
+                                <i class="fas fa-camera"></i>
+                                <p>点击上传图片</p>
+                            </div>
+                            <input type="file" id="medicineImage" accept="image/*" style="display: none;">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="medicineCategory">药品分类</label>
+                    <select id="medicineCategory" aria-label="选择药品分类" class="limited-options" onfocus="this.size=4;" onblur="this.size=1;" onchange="this.blur();">
+                        <option value="感冒用药">感冒用药</option>
+                        <option value="肠胃用药">肠胃用药</option>
+                        <option value="心脑血管">心脑血管</option>
+                        <option value="呼吸系统">呼吸系统</option>
+                        <option value="皮肤用药">皮肤用药</option>
+                        <option value="抗生素">抗生素</option>
+                        <option value="妇科用药">妇科用药</option>
+                        <option value="维生素矿物质">维生素矿物质</option>
+                        <option value="外用药">外用药</option>
+                        <option value="急救药">急救药</option>
+                    </select>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save"></i> 添加药品
+                    </button>
+                </form>
+            </div>
+            
+            <!-- 用药计划功能 -->
+            <div class="card">
+                <h2><i class="fas fa-calendar-check"></i> 用药计划</h2>
+                
+                <!-- 添加用药计划按钮 -->
+                <div id="addPlanSection" style="text-align: center; margin-bottom: 20px;">
+                    <button id="addPlanBtn" class="btn btn-primary" onclick="showPlanForm()">
+                        <i class="fas fa-plus"></i> 添加用药计划
+                    </button>
+                </div>
+                
+                <!-- 用药计划表单 -->
+                <div id="planForm" style="display: none;">
+                    <h3 id="planTitle">添加用药计划</h3>
+                    <form>
+                        <div class="form-group">
+                            <label for="planMedicine">选择药品 *</label>
+                            <div class="searchable-select">
+                                <input type="text" id="planMedicineInput" placeholder="搜索药品名称..." autocomplete="off">
+                                <select id="planMedicineSelect" style="display: none;"></select>
+                                <div id="planMedicineResults" class="search-results"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="dailyDose">每日用药量 *</label>
+                            <div class="input-group">
+                                <input type="number" id="dailyDose" min="0.1" step="0.1" placeholder="输入每日用量" required>
+                                <select id="doseUnit" required></select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="startDate">开始日期 *</label>
+                            <input type="date" id="startDate" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <div id="endDateDisplay" style="padding: 10px; background: #f8f9fa; border-radius: 5px;"></div>
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" onclick="hidePlanForm()">
+                                <i class="fas fa-times"></i> 取消
+                            </button>
+                            <button type="button" class="btn btn-primary" onclick="saveMedicationPlan()">
+                                <i class="fas fa-save"></i> 保存
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- 用药计划列表 -->
+                <div id="plansList" class="plans-list">
+                    <div class="empty-state">
+                        <i class="fas fa-calendar-check"></i>
+                        <h3>暂无用药计划</h3>
+                        <p>点击"添加用药计划"开始创建您的第一个用药提醒</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 数据统计 -->
+        <div class="card">
+            <h2><i class="fas fa-chart-bar"></i> 数据统计</h2>
+            
+            <!-- 统计卡片 -->
+            <div class="data-stats">
+                <div class="stat-card total" onclick="showAllMedicines()" style="cursor: pointer;">
+                    <h3>药品总数</h3>
+                    <div class="stat-value" id="totalCount">0</div>
+                    <div class="stat-desc">当前药品总种类</div>
+                </div>
+                
+                <div class="stat-card low-stock" onclick="toggleLowStockList()" style="cursor: pointer;">
+                    <h3>低库存药品</h3>
+                    <div class="stat-value" id="lowStockCount">0</div>
+                    <div class="stat-desc">数量少于5的药品</div>
+                    <div id="lowStockList" style="display: none; margin-top: 10px; font-size: 0.8rem; color: var(--gray);"></div>
+                </div>
+                
+                <div class="stat-card out-of-stock" onclick="toggleOutOfStockList()" style="cursor: pointer;">
+                    <h3>缺货药品</h3>
+                    <div class="stat-value" id="outOfStockCount">0</div>
+                    <div class="stat-desc">数量为0的药品</div>
+                    <div id="outOfStockList" style="display: none; margin-top: 10px; font-size: 0.8rem; color: var(--gray);"></div>
+                </div>
+                
+                <div class="stat-card plans" onclick="showMedicationPlans()" style="cursor: pointer;">
+                    <h3>用药计划</h3>
+                    <div class="stat-value" id="plansCount">0</div>
+                    <div class="stat-desc">进行中的用药计划</div>
+                </div>
+            </div>
+            
+            <!-- 同步时间显示 -->
+            <div class="sync-time">
+                <div class="sync-time-label">
+                    <i class="fas fa-clock"></i> 最后同步时间:
+                </div>
+                <div class="sync-time-value" id="lastSyncTime">尚未同步</div>
+            </div>
+        </div>
+        <div class="card">
+            <h2><i class="fas fa-list-ul"></i> 药品清单</h2>
+            <div class="form-group">
+                <label for="searchInput">搜索与筛选</label>
+                <div class="search-filter">
+                    <input type="text" id="searchInput" placeholder="搜索药品名称..." aria-label="搜索药品" style="width: 300px; min-width: 200px;">
+                    <select id="categoryFilter" aria-label="按分类筛选药品" class="limited-options" onfocus="this.size=4;" onblur="this.size=1;" onchange="this.blur();">
+                    <option value="">所有分类</option>
+                    <option value="感冒用药">感冒用药</option>
+                    <option value="肠胃用药">肠胃用药</option>
+                    <option value="心脑血管">心脑血管</option>
+                    <option value="呼吸系统">呼吸系统</option>
+                    <option value="皮肤用药">皮肤用药</option>
+                    <option value="抗生素">抗生素</option>
+                    <option value="妇科用药">妇科用药</option>
+                    <option value="维生素矿物质">维生素矿物质</option>
+                    <option value="外用药">外用药</option>
+                    <option value="急救药">急救药</option>
+                </select>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <button class="btn btn-warning" id="lowStockBtn" aria-label="标记选中药品为低库存">
+                    <i class="fas fa-exclamation-triangle"></i> 标记低库存
+                </button>
+                <button class="btn btn-danger" id="deleteSelectedBtn" aria-label="删除选中的药品">
+                    <i class="fas fa-trash"></i> 删除选中
+                </button>
+            </div>
+            
+            <div class="medicine-list" id="medicineList">
+                <div class="empty-state">
+                    <i class="fas fa-pills"></i>
+                    <h3>加载药品数据中...</h3>
+                    <p>请稍等片刻</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 编辑药品模态框 -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <button class="modal-close" id="closeModal" aria-label="关闭编辑对话框">&times;</button>
+            <h2><i class="fas fa-edit"></i> 编辑药品信息</h2>
+            <form id="editForm">
+                <input type="hidden" id="editId">
+                
+                <div class="form-group">
+                    <label for="editName">药品名称</label>
+                    <input type="text" id="editName" required aria-required="true">
+                </div>
+                
+                <div class="form-group">
+                    <label for="editQuantity">库存数量</label>
+                    <div class="input-group">
+                        <input type="number" id="editQuantity" min="0" required aria-required="true">
+                        <select id="editUnit" class="unit-select" aria-label="选择库存单位">
+                            <option value="">选择单位</option>
+                            <option value="片">片</option>
+                            <option value="粒">粒</option>
+                            <option value="支">支</option>
+                            <option value="包">包</option>
+                            <option value="毫升">毫升</option>
+                            <option value="瓶">瓶</option>
+                            <option value="袋">袋</option>
+                            <option value="贴">贴</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editUsage">用法用量</label>
+                    <textarea id="editUsage" rows="3"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editImage">药品图片</label>
+                    <div class="image-upload-container">
+                        <div class="image-preview" id="editImagePreview" style="cursor: pointer;">
+                            <i class="fas fa-camera"></i>
+                            <p>点击上传图片</p>
+                        </div>
+                        <input type="file" id="editImage" accept="image/*" style="display: none;">
+                        <button type="button" class="btn btn-danger" id="removeImageBtn" style="display: none;">
+                            <i class="fas fa-trash"></i> 移除图片
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editCategory">药品分类</label>
+                    <select id="editCategory" aria-label="编辑药品分类" class="limited-options" onfocus="this.size=4;" onblur="this.size=1;" onchange="this.blur();">
+                        <option value="感冒用药">感冒用药</option>
+                        <option value="肠胃用药">肠胃用药</option>
+                        <option value="心脑血管">心脑血管</option>
+                        <option value="呼吸系统">呼吸系统</option>
+                        <option value="皮肤用药">皮肤用药</option>
+                        <option value="抗生素">抗生素</option>
+                        <option value="妇科用药">妇科用药</option>
+                        <option value="维生素矿物质">维生素矿物质</option>
+                        <option value="外用药">外用药</option>
+                        <option value="急救药">急救药</option>
+                    </select>
+                </div>
+                
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                    <button type="button" class="btn btn-secondary" id="cancelEdit">
+                        取消
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save"></i> 保存更改
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- 图片裁剪模态框 -->
+    <div class="modal" id="cropModal">
+        <div class="modal-content" style="max-width: 800px;">
+            <button class="modal-close" id="closeCropModal" aria-label="关闭裁剪对话框">&times;</button>
+            <h2><i class="fas fa-crop"></i> 裁剪图片</h2>
+            <div style="margin-bottom: 20px;">
+                <p>拖动裁剪框选择区域，确保图片比例为 3:2</p>
+            </div>
+            <div id="cropContainer" style="position: relative; width: 100%; overflow: auto;">
+                <canvas id="cropCanvas" style="display: block; margin: 0 auto;"></canvas>
+            </div>
+            <div class="form-group" style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" class="btn btn-secondary" id="cancelCrop">取消</button>
+                <button type="button" class="btn btn-primary" id="confirmCrop">确认裁剪</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 修改记录模态窗口 -->
+    <div class="modal" id="logsModal">
+        <div class="modal-content" style="max-width: 800px;">
+            <button class="modal-close" id="closeLogsModal" aria-label="关闭修改记录对话框">&times;</button>
+            <h2><i class="fas fa-history"></i> 修改记录 <button id="clearLogsBtn" class="btn btn-sm btn-danger" style="margin-left:10px;"><i class="fas fa-trash"></i> 清除所有记录</button></h2>
+            <div id="logsContainer" style="max-height: 500px; overflow-y: auto;">
+                <div class="empty-state">
+                    <i class="fas fa-file-alt"></i>
+                    <h3>暂无修改记录</h3>
+                    <p>所有药品和用药计划的修改操作都会在这里记录</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 通知 -->
+    <div class="notification" id="notification" role="alert" aria-live="polite">
+        <i class="fas fa-check-circle"></i>
+        <span id="notificationText">操作成功！</span>
+    </div>
+
+    <script>
+        // 配置信息已移至config.js
+        
+        // 图片数据
+        let currentMedicineImage = null;
+        let currentEditImage = null;
+        
+        // 调试信息
+        console.log('页面加载完成，初始化图片变量');
+        
+        // 裁剪相关变量
+        let cropModal = null;
+        let cropCanvas = null;
+        let cropCtx = null;
+        let originalImage = null;
+        let cropStartX = 0;
+        let cropStartY = 0;
+        let cropWidth = 0;
+        let cropHeight = 0;
+        let isDragging = false;
+        let dragMode = '';
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let cropStartXOriginal = 0;
+        let cropStartYOriginal = 0;
+        let cropWidthOriginal = 0;
+        let cropHeightOriginal = 0;
+        let currentCropTarget = null; // 记录当前正在处理的裁剪目标（添加/编辑）
+        let currentCropInput = null; // 记录当前正在处理的文件输入
+        let currentCropPreview = null; // 记录当前正在处理的预览元素
+        let currentCropVariable = null; // 记录当前正在处理的图片变量名
+        const CROP_ASPECT_RATIO = 3/2; // 裁剪比例
+        
+        // 药品数据
+        let medicines = [];
+        let selectedMedicines = [];
+        let isAdminMode = false;
+        
+        // ========== 新增：同步相关变量 ==========
+        // 用药计划数据
+        let medicationPlans = [];
+        let editingPlanId = null;
+        let selectedMedicine = null;
+        
+        // 同步功能变量
+        let refreshInterval = null;
+        let lastSyncTime = null;
+        let autoSyncEnabled = true;
+        let isInitialized = false;
+        
+        // ========== 新增：DOM元素变量 ==========
+        // 这些变量会在页面加载后初始化
+        let syncIndicator = null;
+        let syncText = null;
+        let manualSyncBtn = null;
+        let lastSyncTimeElement = null;
+        let plansCountElement = null;
+        
+        // 修改记录数据
+        let modificationLogs = [];
+        // ==================== 同步功能函数 ====================
+        // 这些函数放在变量定义之后，其他所有函数之前
+
+        /**
+         * 更新同步状态显示
+         * @param {string} status - 状态：'syncing', 'success', 'error', 'default'
+         * @param {string} message - 显示的消息文本
+         */
+        function updateSyncStatus(status, message) {
+          // 确保DOM元素已加载
+          if (!syncIndicator) syncIndicator = document.getElementById('syncIndicator');
+          if (!syncText) syncText = document.getElementById('syncText');
+          
+          if (!syncIndicator || !syncText) {
+            console.warn('同步状态元素未找到');
+            return;
+          }
+          
+          // 移除所有可能的动画类
+          const icon = syncIndicator.querySelector('i');
+          if (icon) icon.classList.remove('fa-spin');
+          
+          switch(status) {
+            case 'syncing':
+              // 同步中：旋转图标
+              syncIndicator.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i>';
+              syncText.textContent = message || '同步中...';
+              syncIndicator.querySelector('i')?.classList.add('fa-spin');
+              break;
+              
+            case 'success':
+              // 同步成功：绿色对勾
+              syncIndicator.innerHTML = '<i class="fas fa-check-circle" style="color: var(--success);"></i>';
+              syncText.textContent = message || '已同步';
+              break;
+              
+            case 'error':
+              // 同步失败：红色感叹号
+              syncIndicator.innerHTML = '<i class="fas fa-exclamation-circle" style="color: var(--danger);"></i>';
+              syncText.textContent = message || '同步失败';
+              break;
+              
+            default:
+              // 默认状态：灰色同步图标
+              syncIndicator.innerHTML = '<i class="fas fa-sync-alt"></i>';
+              syncText.textContent = message || '同步中...';
+          }
+        }
+
+        /**
+         * 更新最后同步时间显示
+         */
+        function updateLastSyncTime() {
+          lastSyncTime = new Date();
+          
+          if (!lastSyncTimeElement) {
+            lastSyncTimeElement = document.getElementById('lastSyncTime');
+          }
+          
+          if (lastSyncTimeElement) {
+            const formattedTime = lastSyncTime.toLocaleTimeString('zh-CN', {
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit'
+            });
+            lastSyncTimeElement.textContent = formattedTime;
+          }
+        }
+
+        /**
+         * 手动同步所有数据
+         * 用户点击"立即同步"按钮时调用
+         */
+        async function syncAllData() {
+          // 确保DOM元素已加载
+          if (!manualSyncBtn) manualSyncBtn = document.getElementById('manualSyncBtn');
+          
+          if (!manualSyncBtn) {
+            console.warn('同步按钮未找到');
+            return;
+          }
+          
+          // 保存原始状态
+          const originalText = manualSyncBtn.innerHTML;
+          const originalState = manualSyncBtn.disabled;
+          
+          // 更新按钮状态 - 禁用并显示加载中
+          manualSyncBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 同步中...';
+          manualSyncBtn.disabled = true;
+          updateSyncStatus('syncing', '同步中...');
+          
+          try {
+            // 显示开始同步通知
+            showNotification('开始同步数据...', false);
+            
+            // 同时同步所有数据表
+            const syncPromises = [
+              loadMedicines(),          // 同步药品数据
+              loadMedicationPlans(),    // 同步用药计划
+              loadModificationLogs()    // 同步修改记录
+            ];
+            
+            // 等待所有同步完成
+            await Promise.all(syncPromises);
+            
+            // 更新状态
+            updateSyncStatus('success', '已同步');
+            updateLastSyncTime();
+            showNotification('所有数据同步完成');
+            
+            // 更新按钮显示为成功
+            manualSyncBtn.innerHTML = '<i class="fas fa-check"></i> 同步完成';
+            
+            // 标记初始化完成
+            isInitialized = true;
+            
+          } catch (error) {
+            console.error('同步失败:', error);
+            
+            // 更新状态为错误
+            updateSyncStatus('error', '同步失败');
+            showNotification('同步失败，请检查网络连接', true);
+            
+            // 更新按钮显示为失败
+            manualSyncBtn.innerHTML = '<i class="fas fa-times"></i> 同步失败';
+            
+          } finally {
+            // 3秒后恢复按钮到原始状态
+            setTimeout(() => {
+              manualSyncBtn.innerHTML = originalText;
+              manualSyncBtn.disabled = originalState;
+              updateSyncStatus('default', '同步中...');
+            }, 3000);
+          }
+        }
+
+        /**
+         * 启动自动同步
+         * 每30秒自动同步药品和用药计划数据
+         */
+        function startAutoSync() {
+          // 如果自动同步已禁用，则不启动
+          if (!autoSyncEnabled) return;
+          
+          // 先停止可能存在的旧定时器
+          stopAutoSync();
+          
+          console.log('启动自动同步，间隔30秒');
+          
+          // 创建新的定时器
+          refreshInterval = setInterval(async () => {
+            console.log('执行自动同步...');
+            updateSyncStatus('syncing', '自动同步中...');
+            
+            try {
+              // 自动同步只同步关键数据（药品和用药计划）
+              // 修改记录通常不需要频繁同步
+              await Promise.all([
+                loadMedicines(),
+                loadMedicationPlans()
+              ]);
+              
+              // 更新状态为成功
+              updateSyncStatus('success', '已同步');
+              updateLastSyncTime();
+              
+              // 2秒后恢复默认状态（不显示通知，避免打扰用户）
+              setTimeout(() => {
+                updateSyncStatus('default', '同步中...');
+              }, 2000);
+              
+            } catch (error) {
+              console.error('自动同步失败:', error);
+              updateSyncStatus('error', '同步失败');
+              
+              // 5秒后恢复默认状态
+              setTimeout(() => {
+                updateSyncStatus('default', '同步中...');
+              }, 5000);
+            }
+          }, 30000); // 每30秒同步一次
+        }
+
+        /**
+         * 停止自动同步
+         */
+        function stopAutoSync() {
+          if (refreshInterval) {
+            console.log('停止自动同步');
+            clearInterval(refreshInterval);
+            refreshInterval = null;
+          }
+        }
+
+        /**
+         * 切换自动同步开关
+         */
+        function toggleAutoSync() {
+          autoSyncEnabled = !autoSyncEnabled;
+          
+          if (autoSyncEnabled) {
+            startAutoSync();
+            showNotification('已启用自动同步');
+          } else {
+            stopAutoSync();
+            showNotification('已禁用自动同步');
+          }
+        }
+
+        /**
+         * 检查网络连接状态
+         */
+        function checkNetworkStatus() {
+          return navigator.onLine;
+        }
+
+        /**
+         * 初始化同步功能
+         * 在页面加载完成后调用
+         */
+        function initSyncFeatures() {
+          // 初始化DOM元素引用
+          syncIndicator = document.getElementById('syncIndicator');
+          syncText = document.getElementById('syncText');
+          manualSyncBtn = document.getElementById('manualSyncBtn');
+          lastSyncTimeElement = document.getElementById('lastSyncTime');
+          plansCountElement = document.getElementById('plansCount');
+          
+          // 绑定同步按钮事件
+          if (manualSyncBtn) {
+            manualSyncBtn.addEventListener('click', syncAllData);
+          }
+          
+          // 检查网络状态
+          if (!checkNetworkStatus()) {
+            updateSyncStatus('error', '网络未连接');
+            showNotification('网络未连接，部分功能可能受限', true);
+          }
+          
+          // 监听网络状态变化
+          window.addEventListener('online', () => {
+            updateSyncStatus('syncing', '网络已恢复，正在同步...');
+            setTimeout(() => {
+              syncAllData();
+            }, 1000);
+          });
+          
+          window.addEventListener('offline', () => {
+            updateSyncStatus('error', '网络已断开');
+            showNotification('网络连接已断开', true);
+          });
+        }
+
+
+        
+        // ==================== Supabase Storage 函数 ====================
+        
+        /**
+         * 上传图片到Supabase Storage
+         * @param {File} file - 图片文件
+         * @param {string} fileName - 文件名
+         * @returns {Promise<string>} - 返回上传后的图片URL
+         */
+        async function uploadImageToStorage(file, fileName) {
+          try {
+            console.log('开始上传图片到Storage:', fileName, '文件大小:', file.size, '文件类型:', file.type);
+            
+            // 生成唯一文件名
+            const timestamp = Date.now();
+            const uniqueFileName = `medicine_${timestamp}_${fileName}`;
+            
+            // 构建Storage上传URL
+            const uploadUrl = `${SUPABASE_CONFIG.url}/storage/v1/object/${STORAGE_BUCKET}/${uniqueFileName}`;
+            
+            // 确保使用正确的Content-Type
+            const contentType = file.type.startsWith('image/') ? file.type : 'image/jpeg';
+            console.log('使用的Content-Type:', contentType);
+            
+            // 上传图片
+            const response = await fetch(uploadUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': contentType,
+                'apikey': SUPABASE_CONFIG.key,
+                'Authorization': `Bearer ${SUPABASE_CONFIG.key}`
+              },
+              body: file
+            });
+            
+            // 记录完整响应信息
+            console.log('上传响应状态:', response.status, response.statusText);
+            
+            if (!response.ok) {
+              const errorText = await response.text();
+              console.error('图片上传失败:', errorText);
+              throw new Error(`图片上传失败: ${response.status} ${response.statusText} - ${errorText}`);
+            }
+            
+            // 获取图片URL
+            const imageUrl = `${SUPABASE_CONFIG.url}/storage/v1/object/public/${STORAGE_BUCKET}/${uniqueFileName}`;
+            console.log('图片上传成功，URL:', imageUrl);
+            return imageUrl;
+          } catch (error) {
+            console.error('上传图片到Storage出错:', error);
+            throw error;
+          }
+        }
+        
+        /**
+         * 删除Supabase Storage中的图片
+         * @param {string} imageUrl - 图片URL
+         * @returns {Promise<boolean>} - 返回删除结果
+         */
+        async function deleteImageFromStorage(imageUrl) {
+          try {
+            if (!imageUrl) return true;
+            
+            // 从URL中提取文件名
+            const urlParts = imageUrl.split('/');
+            const fileName = urlParts[urlParts.length - 1];
+            
+            console.log('开始删除Storage中的图片:', fileName);
+            
+            // 构建删除URL
+            const deleteUrl = `${SUPABASE_CONFIG.url}/storage/v1/object/${STORAGE_BUCKET}/${fileName}`;
+            
+            // 发送删除请求
+            const response = await fetch(deleteUrl, {
+              method: 'DELETE',
+              headers: {
+                'apikey': SUPABASE_CONFIG.key,
+                'Authorization': `Bearer ${SUPABASE_CONFIG.key}`
+              }
+            });
+            
+            if (!response.ok) {
+              const errorText = await response.text();
+              console.error('图片删除失败:', errorText);
+              return false;
+            }
+            
+            console.log('图片删除成功:', fileName);
+            return true;
+          } catch (error) {
+            console.error('删除图片出错:', error);
+            return false;
+          }
+        }
+        
+        // ==================== Supabase 数据库请求函数 ====================
+        
+        /**
+         * Supabase数据库请求函数 - 支持所有表操作
+         * @param {Object} options - 请求选项
+         * @param {string} options.path - 表路径（如 'medicines', 'medication_plans'）
+         * @param {string} options.method - HTTP方法：'GET', 'POST', 'PATCH', 'DELETE'
+         * @param {Object} options.data - 请求数据（POST/PATCH时使用）
+         * @param {number} options.id - 记录ID（PATCH/DELETE时使用）
+         * @param {Object} options.query - 查询参数（排序、筛选等）
+         * @returns {Promise} - 返回请求结果
+         */
+        async function supabaseRequest({ path, method = 'GET', data = null, id = null, query = {} }) {
+          try {
+            console.log('supabaseRequest 调用:', { path, method, data, id, query });
+            
+            // 构建基础 URL（始终使用直接连接，因为测试成功）
+            let url = `${SUPABASE_CONFIG.url}/rest/v1/${path}`;
+            const urlParams = new URLSearchParams();
+            
+            // 添加 ID 过滤条件
+            if (id) {
+              if (method === 'PATCH' || method === 'DELETE') {
+                urlParams.append('id', `eq.${id}`);
+              } else if (method === 'GET') {
+                urlParams.append('id', `eq.${id}`);
+              }
+            }
+            
+            // 添加默认排序（对于药品查询）
+            if (method === 'GET' && path === 'medicines' && !query.order) {
+              urlParams.append('order', 'created_at.desc');
+            }
+            
+            // 添加自定义查询参数
+            for (const [key, value] of Object.entries(query)) {
+              urlParams.append(key, value);
+            }
+            
+            // 如果有查询参数，附加到 URL
+            if (urlParams.toString()) {
+              url += `?${urlParams.toString()}`;
+            }
+            
+            console.log('完整请求 URL:', url);
+            
+            // 构建 fetch 选项
+            const fetchOptions = {
+              method: method,
+              headers: {
+                'Content-Type': 'application/json',
+                'apikey': SUPABASE_CONFIG.key,
+                'Authorization': `Bearer ${SUPABASE_CONFIG.key}`,
+                'Prefer': 'return=representation'  // 对于 POST/PATCH，返回插入/更新后的数据
+              },
+              signal: AbortSignal.timeout(15000) // 15秒超时
+            };
+            
+            // 添加请求体（对于 POST 和 PATCH）
+            if (data && (method === 'POST' || method === 'PATCH')) {
+              fetchOptions.body = JSON.stringify(data);
+              console.log('请求体:', data);
+            }
+            
+            console.log('请求选项:', fetchOptions);
+            
+            // 发送请求
+            const response = await fetch(url, fetchOptions);
+            
+            console.log('响应状态:', response.status, response.statusText);
+            
+            if (!response.ok) {
+              const errorText = await response.text();
+              console.error('请求失败详情:', {
+                status: response.status,
+                statusText: response.statusText,
+                url: url,
+                error: errorText
+              });
+              
+              let errorMessage = `请求失败 (${response.status})`;
+              try {
+                const errorJson = JSON.parse(errorText);
+                errorMessage += `: ${errorJson.message || errorJson.error || errorText}`;
+              } catch {
+                errorMessage += `: ${errorText.substring(0, 100)}`;
+              }
+              
+              throw new Error(errorMessage);
+            }
+            
+            const responseText = await response.text();
+            const responseData = responseText ? JSON.parse(responseText) : [];
+            
+            console.log('请求成功，返回数据:', responseData);
+            return responseData;
+            
+          } catch (error) {
+            console.error('supabaseRequest 捕获到错误:', error);
+            
+            // 提供更友好的错误信息
+            if (error.name === 'TimeoutError') {
+              throw new Error('请求超时，请检查网络连接');
+            } else if (error.name === 'AbortError') {
+              throw new Error('请求被中止');
+            } else if (error.message.includes('Failed to fetch')) {
+              throw new Error('网络连接失败，请检查网络设置或防火墙');
+            }
+            
+            throw error;
+          }
+        }
+        // ==================== 数据加载函数 ====================
+
+        /**
+         * 加载药品列表
+         */
+        async function loadMedicines() {
+          try {
+            // 如果正在同步，更新状态
+            updateSyncStatus('syncing', '加载药品数据...');
+            
+            const data = await supabaseRequest({
+              path: 'medicines',
+              method: 'GET',
+              query: {
+                order: 'created_at.desc'
+              }
+            });
+            
+            medicines = data || [];
+            
+            updateStatistics();
+            renderMedicines();
+            
+            console.log(`已加载 ${medicines.length} 条药品记录`);
+            return medicines;
+            
+          } catch (error) {
+            console.error('加载药品失败:', error);
+            
+            // 如果加载失败，显示空状态
+            medicines = [];
+            renderMedicines();
+            
+            // 如果是初始化阶段，显示错误通知
+            if (!isInitialized) {
+              showNotification('加载药品失败，请检查网络连接', true);
+            }
+            
+            return [];
+          }
+        }
+
+        /**
+         * 加载用药计划
+         */
+        async function loadMedicationPlans() {
+          try {
+            const plans = await supabaseRequest({
+              path: 'medication_plans',
+              method: 'GET',
+              query: {
+                order: 'created_at.desc'
+              }
+            });
+            
+            medicationPlans = plans || [];
+            updateStatistics(); // 这会更新计划数量统计
+            renderMedicationPlans(); // 确保这个函数存在
+            
+            console.log(`已加载 ${medicationPlans.length} 条用药计划`);
+            return medicationPlans;
+            
+          } catch (error) {
+            console.error('加载用药计划失败:', error);
+            medicationPlans = [];
+            return [];
+          }
+        }
+
+        /**
+         * 加载修改记录
+         */
+        async function loadModificationLogs() {
+          try {
+            const logs = await supabaseRequest({
+              path: 'modification_logs',
+              method: 'GET',
+              query: {
+                order: 'timestamp.desc',
+                limit: 100
+              }
+            });
+            
+            modificationLogs = logs || [];
+            
+            // 如果有日志容器，更新显示
+            const logsContainer = document.getElementById('logsContainer');
+            if (logsContainer && logsContainer.style.display !== 'none') {
+              renderModificationLogs();
+            }
+            
+            console.log(`已加载 ${modificationLogs.length} 条修改记录`);
+            return modificationLogs;
+            
+          } catch (error) {
+            console.error('加载修改记录失败:', error);
+            modificationLogs = [];
+            return [];
+          }
+        }
+
+        // ==================== 修改记录函数 ====================
+
+        /**
+         * 添加修改记录到Supabase
+         * @param {string} operationType - 操作类型：'create', 'update', 'delete', 'pause', 'resume'
+         * @param {string} targetType - 目标类型：'medicine', 'medicationPlan'
+         * @param {string} targetName - 目标名称（药品名或计划名）
+         * @param {Object} details - 操作详情
+         */
+        async function addModificationLog(operationType, targetType, targetName, details) {
+          try {
+            const log = {
+              timestamp: new Date().toISOString(),
+              operation_type: operationType,
+              target_type: targetType,
+              target_name: targetName,
+              details: details,
+              operator: '管理员'
+            };
+            
+            // 保存到Supabase
+            const result = await supabaseRequest({
+              path: 'modification_logs',
+              method: 'POST',
+              data: log
+            });
+            
+            // 同时更新本地数组（用于即时显示）
+            if (result && result[0]) {
+              modificationLogs.unshift(result[0]);
+              
+              // 限制日志数量，只保留最近100条在内存中
+              if (modificationLogs.length > 100) {
+                modificationLogs = modificationLogs.slice(0, 100);
+              }
+            }
+            
+            return true;
+          } catch (error) {
+            console.error('保存修改记录失败:', error);
+            return false;
+          }
+        }
+
+        /**
+         * 显示修改记录模态框
+         */
+        async function showModificationLogs() {
+          await loadModificationLogs();
+          renderModificationLogs();
+          logsModal.style.display = 'flex';
+        }
+
+        /**
+         * 隐藏修改记录模态框
+         */
+        function hideModificationLogs() {
+          logsModal.style.display = 'none';
+        }
+
+        /**
+         * 清除所有修改记录
+         */
+        async function clearModificationLogs() {
+          if (!isAdminMode) {
+            showNotification('请先进入管理员模式', true);
+            return;
+          }
+          
+          if (confirm('确定要清除所有修改记录吗？此操作不可恢复。')) {
+            try {
+              // 加载所有日志记录
+              const allLogs = await supabaseRequest({
+                path: 'modification_logs',
+                method: 'GET'
+              });
+              
+              if (allLogs && allLogs.length > 0) {
+                showNotification(`正在清除 ${allLogs.length} 条记录...`, false);
+                
+                // 批量删除可能会有性能问题，这里使用逐个删除
+                for (const log of allLogs) {
+                  await supabaseRequest({
+                    path: 'modification_logs',
+                    method: 'DELETE',
+                    id: log.id
+                  });
+                }
+              }
+              
+              modificationLogs = [];
+              renderModificationLogs();
+              showNotification('修改记录已清除');
+            } catch (error) {
+              console.error('清除修改记录失败:', error);
+              showNotification('清除修改记录失败', true);
+            }
+          }
+        }
+
+        /**
+         * 渲染修改记录
+         */
+        function renderModificationLogs() {
+          const logsContainer = document.getElementById('logsContainer');
+          
+          if (!logsContainer) return;
+          
+          if (modificationLogs.length === 0) {
+            logsContainer.innerHTML = `
+              <div class="empty-state">
+                <i class="fas fa-file-alt"></i>
+                <h3>暂无修改记录</h3>
+                <p>所有药品和用药计划的修改操作都会在这里记录</p>
+              </div>
+            `;
+            return;
+          }
+          
+          // 渲染日志列表
+          logsContainer.innerHTML = modificationLogs.map(log => {
+            const date = new Date(log.timestamp);
+            const formattedTime = date.toLocaleString('zh-CN', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+            
+            // 格式化日期为 MM-dd
+            const formatDateToMMDD = (dateStr) => {
+              if (!dateStr) return '';
+              const d = new Date(dateStr);
+              return `${d.getMonth() + 1}-${d.getDate()}`;
+            };
+            
+            let logContent = '';
+            
+            // 根据不同的操作类型和目标类型生成不同的日志内容
+            if (log.target_type === 'medicine') {
+              // 药品相关操作
+              if (log.operation_type === 'create') {
+                logContent = `${formattedTime} 添加了药品 <strong>${log.target_name}</strong>，初始数量：<strong>${log.details.quantity} ${log.details.unit}</strong>`;
+              } else if (log.operation_type === 'update') {
+                if (log.details.changeType === 'quantity') {
+                  logContent = `${formattedTime} 将药品 <strong>${log.target_name}</strong> 的数量从 <strong>${log.details.oldValue} ${log.details.unit}</strong> 修改至 <strong>${log.details.newValue} ${log.details.unit}</strong>`;
+                } else if (log.details.changes) {
+                  // 处理多个字段修改
+                  const changeTexts = log.details.changes.map(change => {
+                    const fieldText = change.field === 'name' ? '名称' : 
+                                     change.field === 'quantity' ? '数量' : 
+                                     change.field === 'unit' ? '单位' : 
+                                     change.field === 'usage' ? '用法' : 
+                                     change.field === 'category' ? '分类' : change.field;
+                    return `${fieldText}：<strong>${change.old}</strong> → <strong>${change.new}</strong>`;
+                  });
+                  logContent = `${formattedTime} 修改了药品 <strong>${log.target_name}</strong> 的信息：${changeTexts.join('，')}`;
+                }
+              } else if (log.operation_type === 'delete') {
+                logContent = `${formattedTime} 删除了药品 <strong>${log.target_name}</strong>`;
+              }
+            } else if (log.target_type === 'medicationPlan') {
+              // 用药计划相关操作
+              if (log.operation_type === 'create') {
+                const startDate = formatDateToMMDD(log.details.startDate);
+                const endDate = formatDateToMMDD(log.details.endDate);
+                logContent = `${formattedTime} 添加了 <strong>${log.target_name}</strong> 的用药计划，从 <strong>${startDate}</strong> 至 <strong>${endDate}</strong> 结束`;
+              } else if (log.operation_type === 'pause') {
+                logContent = `${formattedTime} 停止了 <strong>${log.target_name}</strong> 的用药计划`;
+              } else if (log.operation_type === 'resume') {
+                logContent = `${formattedTime} 恢复了 <strong>${log.target_name}</strong> 的用药计划`;
+              } else if (log.operation_type === 'update') {
+                if (log.details.endDate) {
+                  const endDate = formatDateToMMDD(log.details.endDate);
+                  logContent = `${formattedTime} 修改了 <strong>${log.target_name}</strong> 的用药计划，预计药品用尽日期：<strong>${endDate}</strong>`;
+                }
+              } else if (log.operation_type === 'delete') {
+                logContent = `${formattedTime} 删除了 <strong>${log.target_name}</strong> 的用药计划`;
+              }
+            }
+            
+            // 根据操作类型选择不同的图标和颜色
+            let iconClass = '';
+            let iconColor = '';
+            switch (log.operation_type) {
+              case 'create':
+                iconClass = 'fa-plus-circle';
+                iconColor = 'text-success';
+                break;
+              case 'update':
+                iconClass = 'fa-edit';
+                iconColor = 'text-primary';
+                break;
+              case 'delete':
+                iconClass = 'fa-trash';
+                iconColor = 'text-danger';
+                break;
+              case 'pause':
+                iconClass = 'fa-pause-circle';
+                iconColor = 'text-warning';
+                break;
+              case 'resume':
+                iconClass = 'fa-play-circle';
+                iconColor = 'text-info';
+                break;
+              default:
+                iconClass = 'fa-info-circle';
+                iconColor = 'text-secondary';
+            }
+            
+            // 生成美化的日志条目HTML
+            return `
+              <div class="log-item">
+                <div class="log-header">
+                  <i class="fas ${iconClass} ${iconColor} log-icon"></i>
+                  <div class="log-content">
+                    ${logContent}
+                    <span class="log-operator">操作人：${log.operator || '管理员'}</span>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+        // ==================== 药品管理核心函数 ====================
+
+        /**
+         * 添加药品
+         */
+        async function addMedicine(e) {
+          e.preventDefault();
+          
+          if (!isAdminMode) {
+            showNotification('请先进入管理员模式', true);
+            return;
+          }
+          
+          const name = document.getElementById('medicineName').value.trim();
+          const quantityToAdd = parseInt(document.getElementById('medicineQuantity').value);
+          const usage = document.getElementById('medicineUsage').value.trim();
+          const category = document.getElementById('medicineCategory').value;
+          const unit = document.getElementById('medicineUnit').value;
+          
+          // 添加详细调试日志
+          console.log('=== 添加药品调试 ===');
+          console.log('1. currentMedicineImage 值:', currentMedicineImage);
+          console.log('2. 图片文件Input的值:', document.getElementById('medicineImage').files[0]);
+          console.log('3. 表单数据:', { name, quantityToAdd, usage, category, unit });
+          
+          if (!name || isNaN(quantityToAdd) || quantityToAdd <= 0 || !unit) {
+            showNotification('请填写完整的药品信息（名称、数量、单位）', true);
+            return;
+          }
+          
+          try {
+            // 检查是否已存在相同名称的药品
+            const existingMedicine = medicines.find(m => m.name === name);
+            
+            if (existingMedicine) {
+              // 如果存在，更新数量
+              const updatedQuantity = existingMedicine.quantity + quantityToAdd;
+              
+              console.log('更新现有药品:', existingMedicine.id, '新数量:', updatedQuantity);
+              
+              const updateData = {
+                quantity: updatedQuantity,
+                unit: existingMedicine.unit, // 始终使用原单位
+                usage: usage || existingMedicine.usage,
+                category: category || existingMedicine.category,
+                image: window.currentMedicineImage || existingMedicine.image
+              };
+              
+              console.log('3. 现有药品信息:', existingMedicine);
+              console.log('4. 更新数据:', updateData);
+              console.log('5. 更新图片字段值:', updateData.image);
+              
+              await supabaseRequest({
+                path: 'medicines',
+                method: 'PATCH',
+                data: updateData,
+                id: existingMedicine.id
+              });
+              
+              console.log('更新药品成功');
+              
+              // 添加修改记录
+              await addModificationLog('update', 'medicine', existingMedicine.name, {
+                changeType: 'quantity',
+                oldValue: existingMedicine.quantity,
+                newValue: updatedQuantity,
+                unit: unit
+              });
+              
+              showNotification(`已更新药品 ${name} 的数量`);
+              
+            } else {
+              // 如果不存在，创建新药品
+              const newMedicine = {
+                name,
+                quantity: quantityToAdd,
+                unit: unit,
+                usage: usage || null,
+                category: category || null,
+                image: window.currentMedicineImage || null  // 这里设置图片URL
+              };
+              
+              console.log('4. 准备保存的药品数据:', newMedicine);
+              console.log('5. 图片字段值:', newMedicine.image);
+              console.log('创建新药品数据:', newMedicine);
+              
+              const result = await supabaseRequest({
+                path: 'medicines',
+                method: 'POST',
+                data: newMedicine
+              });
+              
+              console.log('创建药品成功，返回结果:', result);
+              
+              // 添加修改记录
+              await addModificationLog('create', 'medicine', name, {
+                quantity: quantityToAdd,
+                unit: unit,
+                usage: usage,
+                category: category
+              });
+              
+              showNotification(`已添加药品 ${name}`);
+            }
+            
+            // 重新加载药品列表
+            await loadMedicines();
+            
+            // 重置表单
+            medicineForm.reset();
+            document.getElementById('medicineUnit').value = '';
+            
+            // 解锁单位选择框
+            const unitSelect = document.getElementById('medicineUnit');
+            unitSelect.disabled = false;
+            unitSelect.style.backgroundColor = '#fff';
+            unitSelect.style.cursor = 'pointer';
+            
+            // 重置图片上传
+            if (typeof resetImageUpload === 'function') {
+              resetImageUpload(document.getElementById('medicineImage'), document.getElementById('medicineImagePreview'), 'currentMedicineImage');
+            } else {
+              document.getElementById('medicineImage').value = '';
+              document.getElementById('medicineImagePreview').innerHTML = '<i class="fas fa-camera"></i><p>点击上传图片</p>';
+              currentMedicineImage = null;
+            }
+            
+          } catch (error) {
+            console.error('添加药品失败详情:', error);
+            
+            // 提供更具体的错误信息
+            let errorMessage = '添加药品失败';
+            if (error.message.includes('网络连接失败')) {
+              errorMessage = '网络连接失败，请检查网络设置';
+            } else if (error.message.includes('请求超时')) {
+              errorMessage = '请求超时，请稍后重试';
+            } else if (error.message.includes('401') || error.message.includes('403')) {
+              errorMessage = '权限不足，请检查API密钥或表权限';
+            } else {
+              errorMessage = `添加药品失败: ${error.message}`;
+            }
+            
+            showNotification(errorMessage, true);
+          }
+        }
+
+        /**
+         * 更新药品
+         */
+        async function updateMedicine(e) {
+          e.preventDefault();
+          
+          if (!isAdminMode) {
+            showNotification('请先进入管理员模式', true);
+            return;
+          }
+          
+          const id = parseInt(document.getElementById('editId').value);
+          const name = document.getElementById('editName').value.trim();
+          const quantity = parseInt(document.getElementById('editQuantity').value);
+          const usage = document.getElementById('editUsage').value.trim();
+          const category = document.getElementById('editCategory').value;
+          const unit = document.getElementById('editUnit').value;
+          
+          if (!name || isNaN(quantity) || quantity < 0 || !unit) {
+            showNotification('请填写完整的药品信息', true);
+            return;
+          }
+          
+          try {
+            // 获取原药品信息
+            const originalMedicine = medicines.find(m => m.id === id);
+            if (!originalMedicine) {
+              showNotification('未找到该药品', true);
+              return;
+            }
+            
+            const updatedMedicine = {
+              name,
+              quantity,
+              unit: unit,
+              usage: usage,
+              category: category,
+              image: currentEditImage !== null ? currentEditImage : originalMedicine.image
+            };
+            
+            await supabaseRequest({
+              path: 'medicines',
+              method: 'PATCH',
+              data: updatedMedicine,
+              id: id
+            });
+            
+            // 添加修改记录
+            const changes = [];
+            if (originalMedicine.name !== name) changes.push({field: 'name', old: originalMedicine.name, new: name});
+            if (originalMedicine.quantity !== quantity) changes.push({field: 'quantity', old: originalMedicine.quantity, new: quantity});
+            if (originalMedicine.unit !== unit) changes.push({field: 'unit', old: originalMedicine.unit, new: unit});
+            if (originalMedicine.usage !== usage) changes.push({field: 'usage', old: originalMedicine.usage, new: usage});
+            if (originalMedicine.category !== category) changes.push({field: 'category', old: originalMedicine.category, new: category});
+            if (currentEditImage !== null) changes.push({field: 'image', old: '旧图片', new: '新图片'});
+            
+            await addModificationLog('update', 'medicine', name, {
+              changes: changes
+            });
+            
+            // 重新加载药品列表
+            await loadMedicines();
+            editModal.style.display = 'none';
+            showNotification('药品信息更新成功！');
+          } catch (error) {
+            console.error('更新药品失败:', error);
+            showNotification(`更新药品失败: ${error.message}`, true);
+          }
+        }
+
+        /**
+         * 删除药品
+         */
+        async function deleteMedicine(id) {
+          if (!isAdminMode) {
+            showNotification('请先进入管理员模式', true);
+            return;
+          }
+          
+          if (!confirm('确定要删除这个药品吗？此操作不可撤销。')) {
+            return;
+          }
+          
+          try {
+            // 获取原药品信息
+            const medicineToDelete = medicines.find(m => m.id === id);
+            if (medicineToDelete) {
+              // 添加修改记录
+              await addModificationLog('delete', 'medicine', medicineToDelete.name, {
+                quantity: medicineToDelete.quantity,
+                unit: medicineToDelete.unit,
+                usage: medicineToDelete.usage,
+                category: medicineToDelete.category
+              });
+              
+              // 如果有图片，从Storage中删除
+              if (medicineToDelete.image) {
+                await deleteImageFromStorage(medicineToDelete.image);
+                console.log('已从Storage中删除图片:', medicineToDelete.image);
+              }
+            }
+            
+            await supabaseRequest({
+              path: 'medicines',
+              method: 'DELETE',
+              id: id
+            });
+            
+            // 重新加载药品列表
+            await loadMedicines();
+            showNotification('药品删除成功！');
+          } catch (error) {
+            console.error('删除药品失败:', error);
+            showNotification(`删除药品失败: ${error.message}`, true);
+          }
+        }
+
+        /**
+         * 删除选中的药品
+         */
+        async function deleteSelectedMedicines() {
+          if (!isAdminMode) {
+            showNotification('请先进入管理员模式', true);
+            return;
+          }
+          
+          selectedMedicines = medicines.filter(m => m.selected);
+          
+          if (selectedMedicines.length === 0) {
+            showNotification('请先选择药品', true);
+            return;
+          }
+          
+          if (!confirm(`确定要删除选中的 ${selectedMedicines.length} 个药品吗？此操作不可撤销。`)) {
+            return;
+          }
+          
+          try {
+            for (const medicine of selectedMedicines) {
+              // 添加修改记录
+              await addModificationLog('delete', 'medicine', medicine.name, {
+                quantity: medicine.quantity,
+                unit: medicine.unit,
+                usage: medicine.usage,
+                category: medicine.category
+              });
+              
+              // 如果有图片，从Storage中删除
+              if (medicine.image) {
+                await deleteImageFromStorage(medicine.image);
+                console.log('已从Storage中删除图片:', medicine.image);
+              }
+              
+              await supabaseRequest({
+                path: 'medicines',
+                method: 'DELETE',
+                id: medicine.id
+              });
+            }
+            
+            // 重新加载药品列表
+            await loadMedicines();
+            showNotification(`已删除 ${selectedMedicines.length} 个药品`);
+          } catch (error) {
+            console.error('批量删除失败:', error);
+            showNotification('删除失败，请重试', true);
+          }
+        }
+
+        /**
+         * 编辑药品（打开编辑模态框）
+         */
+        function editMedicine(id) {
+          if (!isAdminMode) {
+            showNotification('请先进入管理员模式', true);
+            return;
+          }
+          
+          const medicine = medicines.find(m => m.id === id);
+          if (!medicine) return;
+          
+          document.getElementById('editId').value = medicine.id;
+          document.getElementById('editName').value = medicine.name;
+          document.getElementById('editQuantity').value = medicine.quantity;
+          document.getElementById('editUnit').value = medicine.unit || '';
+          document.getElementById('editUsage').value = medicine.usage || '';
+          document.getElementById('editCategory').value = medicine.category || '';
+          
+          // 显示药品图片
+          const editImagePreview = document.getElementById('editImagePreview');
+          if (medicine.image) {
+            editImagePreview.innerHTML = `<img src="${medicine.image}" alt="${medicine.name}">`;
+            currentEditImage = medicine.image;
+            document.getElementById('removeImageBtn').style.display = 'inline-block';
+          } else {
+            editImagePreview.innerHTML = '<i class="fas fa-camera"></i><p>点击上传图片</p>';
+            currentEditImage = null;
+            document.getElementById('removeImageBtn').style.display = 'none';
+          }
+          
+          editModal.style.display = 'flex';
+        }
+
+        /**
+         * 标记低库存
+         */
+        async function markLowStock() {
+          if (!isAdminMode) {
+            showNotification('请先进入管理员模式', true);
+            return;
+          }
+          
+          selectedMedicines = medicines.filter(m => m.selected);
+          
+          if (selectedMedicines.length === 0) {
+            showNotification('请先选择药品', true);
+            return;
+          }
+          
+          try {
+            for (const medicine of selectedMedicines) {
+              const updatedMedicine = {
+                quantity: 5 // 设置为低库存值
+              };
+              
+              await supabaseRequest({
+                path: 'medicines',
+                method: 'PATCH',
+                data: updatedMedicine,
+                id: medicine.id
+              });
+            }
+            
+            // 重新加载药品列表
+            await loadMedicines();
+            showNotification(`已标记 ${selectedMedicines.length} 个药品为低库存`);
+          } catch (error) {
+            console.error('标记低库存失败:', error);
+            showNotification('操作失败，请重试', true);
+          }
+        }
+
+        // ==================== 统计和辅助函数 ====================
+
+        /**
+         * 更新统计数据
+         */
+        function updateStatistics() {
+          const total = medicines.length;
+          const lowStockMedicines = medicines.filter(m => {
+            if (m.quantity === 0) return false;
+            if (m.unit === '毫升') return m.quantity <= 20;
+            return m.quantity <= 5;
+          });
+          const outOfStockMedicines = medicines.filter(m => m.quantity === 0);
+          const activePlans = medicationPlans.filter(p => p.status === 'active').length;
+          
+          // 更新DOM元素
+          const totalCountElement = document.getElementById('totalCount');
+          const lowStockCountElement = document.getElementById('lowStockCount');
+          const outOfStockCountElement = document.getElementById('outOfStockCount');
+          const plansCountElement = document.getElementById('plansCount');
+          
+          if (totalCountElement) totalCountElement.textContent = total;
+          if (lowStockCountElement) lowStockCountElement.textContent = lowStockMedicines.length;
+          if (outOfStockCountElement) outOfStockCountElement.textContent = outOfStockMedicines.length;
+          if (plansCountElement) plansCountElement.textContent = activePlans;
+          
+          // 生成低库存药品列表
+          const lowStockList = document.getElementById('lowStockList');
+          if (lowStockList) {
+            lowStockList.innerHTML = lowStockMedicines.length > 0 ? 
+              lowStockMedicines.map(m => `<div>${m.name} (${m.quantity}${m.unit})</div>`).join('') : 
+              '<div>无低库存药品</div>';
+          }
+          
+          // 生成缺货药品列表
+          const outOfStockList = document.getElementById('outOfStockList');
+          if (outOfStockList) {
+            outOfStockList.innerHTML = outOfStockMedicines.length > 0 ? 
+              outOfStockMedicines.map(m => `<div>${m.name}</div>`).join('') : 
+              '<div>无缺货药品</div>';
+          }
+        }
+
+        /**
+         * 切换低库存药品列表显示
+         */
+        function toggleLowStockList() {
+          const list = document.getElementById('lowStockList');
+          list.style.display = list.style.display === 'none' ? 'block' : 'none';
+        }
+
+        /**
+         * 切换缺货药品列表显示
+         */
+        function toggleOutOfStockList() {
+          const list = document.getElementById('outOfStockList');
+          list.style.display = list.style.display === 'none' ? 'block' : 'none';
+        }
+
+        /**
+         * 显示所有药品（用于点击统计卡片时）
+         */
+        function showAllMedicines() {
+          const searchInput = document.getElementById('searchInput');
+          const categoryFilter = document.getElementById('categoryFilter');
+          
+          if (searchInput) searchInput.value = '';
+          if (categoryFilter) categoryFilter.value = '';
+          filterMedicines();
+          
+          // 滚动到药品列表
+          document.querySelector('.medicine-list').scrollIntoView({ 
+            behavior: 'smooth',
+            block: 'start'
+          });
+        }
+
+        /**
+         * 显示用药计划（用于点击统计卡片时）
+         */
+        function showMedicationPlans() {
+          // 滚动到用药计划部分
+          document.querySelector('#plansList').scrollIntoView({ 
+            behavior: 'smooth',
+            block: 'start'
+          });
+        }
+
+        /**
+         * 获取库存状态
+         */
+        function getStockStatus(quantity, unit) {
+          if (quantity === 0) return 'empty';
+          if (unit === '毫升' && quantity <= 20) return 'low';
+          if (unit !== '毫升' && quantity <= 5) return 'low';
+          return 'normal';
+        }
+
+        /**
+         * 渲染药品列表
+         */
+        function renderMedicines() {
+          const medicineList = document.getElementById('medicineList');
+          
+          if (!medicineList) return;
+          
+          medicineList.innerHTML = '';
+          
+          if (medicines.length === 0) {
+            medicineList.innerHTML = `
+              <div class="empty-state">
+                <i class="fas fa-pills"></i>
+                <h3>暂无药品记录</h3>
+                <p>点击上方"添加药品"按钮开始管理您的药库</p>
+              </div>
+            `;
+            return;
+          }
+          
+          medicines.forEach(medicine => {
+            const status = getStockStatus(medicine.quantity, medicine.unit);
+            const statusClass = `status-${status}`;
+            const statusText = status === 'low' ? '低库存' : 
+                             status === 'empty' ? '缺货' : '库存正常';
+            
+            const medicineCard = document.createElement('div');
+            medicineCard.className = 'medicine-card';
+            medicineCard.innerHTML = `
+              <div class="medicine-image">
+                ${medicine.image ? `
+                  <img src="${medicine.image}" alt="${medicine.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;">
+                ` : `
+                  <i class="fas fa-pills" aria-hidden="true"></i>
+                `}
+              </div>
+              <div class="medicine-info">
+                <div class="medicine-name">${medicine.name}</div>
+                <div class="medicine-details">
+                  <div class="medicine-detail">
+                    <i class="fas fa-box" aria-hidden="true"></i>
+                    <span>库存: ${medicine.quantity}${medicine.unit ? ' ' + medicine.unit : ''}</span>
+                  </div>
+                  <div class="medicine-detail">
+                    <i class="fas fa-tag" aria-hidden="true"></i>
+                    <span>分类: ${medicine.category || '未分类'}</span>
+                  </div>
+                  ${medicine.usage ? `
+                    <div class="medicine-detail">
+                      <i class="fas fa-info-circle" aria-hidden="true"></i>
+                      <span>${medicine.usage}</span>
+                    </div>
+                  ` : ''}
+                  <div class="medicine-detail">
+                    <i class="fas fa-circle" aria-hidden="true"></i>
+                    <span class="status-indicator ${statusClass}">${statusText}</span>
+                  </div>
+                </div>
+                ${isAdminMode ? `
+                <div class="medicine-actions">
+                      <button class="btn ${medicine.selected ? 'btn-primary' : 'btn-secondary'}" 
+                              onclick="toggleSelect(${medicine.id})" aria-label="${medicine.selected ? '取消选择' : '选择'} ${medicine.name}">
+                        <i class="fas ${medicine.selected ? 'fa-check-square' : 'fa-square'}" aria-hidden="true"></i>
+                        ${medicine.selected ? '已选中' : '选择'}
+                      </button>
+                      <button class="btn btn-warning" onclick="editMedicine(${medicine.id})" aria-label="编辑 ${medicine.name}">
+                        <i class="fas fa-edit" aria-hidden="true"></i> 编辑
+                      </button>
+                      <button class="btn btn-danger" onclick="deleteMedicine(${medicine.id})" aria-label="删除 ${medicine.name}">
+                        <i class="fas fa-trash" aria-hidden="true"></i> 删除
+                      </button>
+                    </div>
+                ` : ''}
+              </div>
+            `;
+            
+            medicineList.appendChild(medicineCard);
+          });
+        }
+
+        /**
+         * 切换选择状态
+         */
+        function toggleSelect(id) {
+          if (!isAdminMode) return;
+          
+          const index = medicines.findIndex(m => m.id === id);
+          if (index !== -1) {
+            medicines[index].selected = !medicines[index].selected;
+            renderMedicines();
+          }
+        }
+
+        /**
+         * 筛选药品
+         */
+        function filterMedicines() {
+          const searchInput = document.getElementById('searchInput');
+          const categoryFilter = document.getElementById('categoryFilter');
+          
+          if (!searchInput || !categoryFilter) return;
+          
+          const searchTerm = searchInput.value.toLowerCase();
+          const category = categoryFilter.value;
+          
+          let filteredMedicines = [...medicines];
+          
+          if (searchTerm) {
+            filteredMedicines = filteredMedicines.filter(m => 
+              m.name.toLowerCase().includes(searchTerm) || matchPinyin(m.name, searchTerm)
+            );
+          }
+          
+          if (category) {
+            filteredMedicines = filteredMedicines.filter(m => 
+              m.category === category
+            );
+          }
+          
+          const tempMedicines = medicines;
+          medicines = filteredMedicines;
+          renderMedicines();
+          medicines = tempMedicines;
+        }
+        // ==================== 用药计划相关函数 ====================
+
+        /**
+         * 显示用药计划表单
+         */
+        function showPlanForm() {
+          // 隐藏添加按钮
+          document.getElementById('addPlanSection').style.display = 'none';
+          
+          // 显示表单
+          document.getElementById('planForm').style.display = 'block';
+          document.getElementById('planTitle').textContent = '添加用药计划';
+          
+          // 隐藏列表
+          document.getElementById('plansList').style.display = 'none';
+          
+          // 重置表单
+          editingPlanId = null;
+          selectedMedicine = null;
+          document.getElementById('planMedicineInput').value = '';
+          document.getElementById('dailyDose').value = '';
+          document.getElementById('startDate').value = new Date().toISOString().split('T')[0];
+          document.getElementById('endDateDisplay').textContent = '';
+          document.getElementById('doseUnit').innerHTML = '';
+        }
+
+        /**
+         * 隐藏用药计划表单
+         */
+        function hidePlanForm() {
+          // 显示添加按钮
+          document.getElementById('addPlanSection').style.display = 'block';
+          
+          // 隐藏表单
+          document.getElementById('planForm').style.display = 'none';
+          
+          // 显示列表
+          document.getElementById('plansList').style.display = 'block';
+          
+          // 清空搜索结果
+          document.getElementById('planMedicineResults').innerHTML = '';
+        }
+
+        /**
+         * 初始化药品搜索功能
+         */
+        function initMedicineSearch() {
+          // 初始化planMedicineInput搜索
+          const planSearchInput = document.getElementById('planMedicineInput');
+          const planResultsDiv = document.getElementById('planMedicineResults');
+          
+          if (planSearchInput && planResultsDiv) {
+            planSearchInput.addEventListener('input', function() {
+              const searchTerm = this.value.toLowerCase();
+              
+              if (searchTerm.length < 1) {
+                planResultsDiv.innerHTML = '';
+                return;
+              }
+              
+              const filteredMedicines = medicines.filter(medicine => 
+                medicine.name.toLowerCase().includes(searchTerm) || matchPinyin(medicine.name, searchTerm)
+              );
+              
+              if (filteredMedicines.length === 0) {
+                planResultsDiv.innerHTML = '<div style="padding: 10px; text-align: center; color: var(--gray);">未找到匹配的药品</div>';
+                return;
+              }
+              
+              planResultsDiv.innerHTML = filteredMedicines.map(medicine => `
+                <div onclick="selectMedicineForPlan(${JSON.stringify(medicine).replace(/"/g, '&quot;')})")>
+                  <strong>${medicine.name}</strong><br>
+                  <small>剩余: ${medicine.quantity} ${medicine.unit || '单位'}</small>
+                </div>
+              `).join('');
+            });
+          }
+          
+          // 初始化medicineName搜索
+          const medicineNameInput = document.getElementById('medicineName');
+          const medicineNameResults = document.getElementById('medicineNameResults');
+          
+          if (medicineNameInput && medicineNameResults) {
+            medicineNameInput.addEventListener('input', function() {
+              const searchTerm = this.value.toLowerCase();
+              const inputValue = this.value.trim();
+              
+              if (searchTerm.length < 1) {
+                medicineNameResults.style.display = 'none';
+                // 解锁单位选择框
+                const unitSelect = document.getElementById('medicineUnit');
+                unitSelect.disabled = false;
+                unitSelect.style.backgroundColor = '#fff';
+                unitSelect.style.cursor = 'pointer';
+                return;
+              }
+              
+              const filteredMedicines = medicines.filter(medicine => 
+                medicine.name.toLowerCase().includes(searchTerm) || matchPinyin(medicine.name, searchTerm)
+              );
+              
+              // 检查是否输入了完整的药品名称
+              const exactMatch = medicines.find(m => m.name === inputValue);
+              if (exactMatch) {
+                // 锁定单位为该药品的单位
+                lockUnitForExistingMedicine(inputValue);
+              } else {
+                // 解锁单位选择框
+                const unitSelect = document.getElementById('medicineUnit');
+                unitSelect.disabled = false;
+                unitSelect.style.backgroundColor = '#fff';
+                unitSelect.style.cursor = 'pointer';
+              }
+              
+              if (filteredMedicines.length === 0) {
+                medicineNameResults.style.display = 'block';
+                medicineNameResults.innerHTML = '<div class="autocomplete-item">未找到匹配的药品</div>';
+              } else {
+                medicineNameResults.style.display = 'block';
+                medicineNameResults.innerHTML = filteredMedicines.map(medicine => `
+                  <div onclick="selectMedicineForNameInput('${medicine.name.replace(/'/g, "\\'")}')" class="autocomplete-item">
+                    <strong>${medicine.name}</strong>
+                  </div>
+                `).join('');
+              }
+            });
+          }
+          
+          // 点击页面其他地方关闭搜索结果
+          document.addEventListener('click', function(e) {
+            if (!e.target.closest('.autocomplete-container') && !e.target.closest('.searchable-select')) {
+              if (planResultsDiv) planResultsDiv.innerHTML = '';
+              if (medicineNameResults) medicineNameResults.style.display = 'none';
+            }
+          });
+        }
+
+        /**
+         * 选择药品用于用药计划
+         */
+        function selectMedicineForPlan(medicine) {
+          selectedMedicine = medicine;
+          document.getElementById('planMedicineInput').value = medicine.name;
+          document.getElementById('planMedicineResults').innerHTML = '';
+          
+          // 填充单位选择
+          const doseUnitSelect = document.getElementById('doseUnit');
+          doseUnitSelect.innerHTML = `<option value="${medicine.unit}">${medicine.unit}</option>`;
+          doseUnitSelect.value = medicine.unit;
+          
+          // 计算并显示结束日期
+          updateEndDateDisplay();
+        }
+        
+        /**
+         * 选择药品用于药品名称输入框
+         */
+        function selectMedicineForNameInput(medicineName) {
+          document.getElementById('medicineName').value = medicineName;
+          document.getElementById('medicineNameResults').style.display = 'none';
+          
+          // 锁定单位为现有药品的单位
+          lockUnitForExistingMedicine(medicineName);
+        }
+        
+        /**
+         * 为现有药品锁定单位选择
+         */
+        function lockUnitForExistingMedicine(medicineName) {
+          const existingMedicine = medicines.find(m => m.name === medicineName);
+          const unitSelect = document.getElementById('medicineUnit');
+          
+          if (existingMedicine) {
+            // 锁定单位选择框
+            unitSelect.value = existingMedicine.unit;
+            unitSelect.disabled = true;
+            unitSelect.style.backgroundColor = '#f5f5f5';
+            unitSelect.style.cursor = 'not-allowed';
+          } else {
+            // 解锁单位选择框
+            unitSelect.disabled = false;
+            unitSelect.style.backgroundColor = '#fff';
+            unitSelect.style.cursor = 'pointer';
+          }
+        }
+
+        /**
+         * 更新结束日期显示
+         */
+        function updateEndDateDisplay() {
+          if (!selectedMedicine) return;
+          
+          const dailyDoseInput = document.getElementById('dailyDose');
+          const dailyDose = parseFloat(dailyDoseInput.value);
+          const endDateDisplay = document.getElementById('endDateDisplay');
+          
+          // 确保输入框显示正确的数字格式
+          if (dailyDoseInput.value && !isNaN(dailyDose)) {
+            dailyDoseInput.value = dailyDose;
+          }
+          
+          if (!isNaN(dailyDose) && dailyDose > 0) {
+            const daysSupply = Math.floor(selectedMedicine.quantity / dailyDose);
+            if (daysSupply > 0) {
+              const endDate = new Date();
+              endDate.setDate(endDate.getDate() + daysSupply);
+              endDateDisplay.innerHTML = `
+                <div style="display: flex; align-items: center;">
+                  <i class="fas fa-calendar-times" style="margin-right: 10px; color: var(--primary);"></i>
+                  <span>预计用完日期: <strong>${endDate.toLocaleDateString()}</strong> (剩余 ${daysSupply} 天)</span>
+                </div>
+              `;
+            } else {
+              endDateDisplay.innerHTML = `
+                <div style="display: flex; align-items: center; color: var(--warning);">
+                  <i class="fas fa-exclamation-triangle" style="margin-right: 10px;"></i>
+                  <span>库存不足，无法满足用药计划</span>
+                </div>
+              `;
+            }
+          } else {
+            endDateDisplay.innerHTML = '';
+          }
+        }
+
+        /**
+         * 保存用药计划
+         */
+        async function saveMedicationPlan() {
+          if (!isAdminMode) {
+            showNotification('请先进入管理员模式', true);
+            return;
+          }
+          
+          // 收集表单数据
+          const dailyDose = parseFloat(document.getElementById('dailyDose').value);
+          const startDate = document.getElementById('startDate').value;
+          
+          // 验证数据
+          if (!selectedMedicine) {
+            showNotification('请选择药品', true);
+            return;
+          }
+          
+          if (isNaN(dailyDose) || dailyDose <= 0) {
+            showNotification('请输入有效的每日用量', true);
+            return;
+          }
+          
+          if (!startDate) {
+            showNotification('请选择开始日期', true);
+            return;
+          }
+          
+          // 计算结束日期
+          const daysSupply = Math.floor(selectedMedicine.quantity / dailyDose);
+          const endDate = new Date(startDate);
+          endDate.setDate(endDate.getDate() + daysSupply);
+          
+          try {
+            const planData = {
+              medicine_id: selectedMedicine.id,
+              medicine_name: selectedMedicine.name,
+              medicine_unit: selectedMedicine.unit,
+              daily_dose: dailyDose,
+              start_date: startDate,
+              end_date: endDate.toISOString().split('T')[0],
+              status: 'active'
+            };
+            
+            if (editingPlanId) {
+              // 更新现有计划
+              await supabaseRequest({
+                path: 'medication_plans',
+                method: 'PATCH',
+                data: planData,
+                id: editingPlanId
+              });
+              
+              // 添加修改记录
+              await addModificationLog('update', 'medicationPlan', selectedMedicine.name, {
+                planId: editingPlanId,
+                dailyDose: dailyDose
+              });
+              
+              showNotification('用药计划已更新！');
+            } else {
+              // 创建新计划
+              await supabaseRequest({
+                path: 'medication_plans',
+                method: 'POST',
+                data: planData
+              });
+              
+              // 添加修改记录
+              await addModificationLog('add', 'medicationPlan', selectedMedicine.name, {
+                dailyDose: dailyDose,
+                startDate: startDate
+              });
+              
+              showNotification('用药计划已添加！');
+            }
+            
+            // 重新加载用药计划
+            await loadMedicationPlans();
+            
+            // 隐藏表单，显示列表
+            hidePlanForm();
+          } catch (error) {
+            console.error('保存用药计划失败:', error);
+            showNotification('保存用药计划失败！', true);
+          }
+        }
+
+        /**
+         * 渲染用药计划列表
+         */
+        function renderMedicationPlans() {
+          const container = document.getElementById('plansList');
+          
+          if (!container) return;
+          
+          if (medicationPlans.length === 0) {
+            container.innerHTML = `
+              <div class="empty-state">
+                <i class="fas fa-calendar-check"></i>
+                <h3>暂无用药计划</h3>
+                <p>点击"添加用药计划"开始创建您的第一个用药提醒</p>
+              </div>
+            `;
+            return;
+          }
+          
+          container.innerHTML = medicationPlans.map(plan => {
+            const isPaused = plan.status === 'stopped';
+            const today = new Date();
+            const endDate = new Date(plan.end_date);
+            const daysRemaining = Math.max(0, Math.ceil((endDate - today) / (1000 * 60 * 60 * 24)));
+            
+            return `
+              <div class="plan-card ${isPaused ? 'paused' : ''}">
+                <div class="plan-header">
+                  <h3>${plan.medicine_name}</h3>
+                  <span class="plan-status ${plan.status}">${plan.status === 'active' ? '进行中' : '已停止'}</span>
+                </div>
+                <div class="plan-details">
+                  <div class="plan-detail">
+                    <i class="fas fa-pills"></i>
+                    <span>每日用量: ${plan.daily_dose} ${plan.medicine_unit}</span>
+                  </div>
+                  <div class="plan-detail">
+                    <i class="fas fa-calendar-day"></i>
+                    <span>开始日期: ${plan.start_date}</span>
+                  </div>
+                  <div class="plan-detail">
+                    <i class="fas fa-calendar-times"></i>
+                    <span>预计用完: ${plan.end_date}</span>
+                  </div>
+                  <div class="plan-detail">
+                    <i class="fas fa-clock"></i>
+                    <span>剩余天数: ${daysRemaining}天</span>
+                  </div>
+                </div>
+                <div class="plan-actions">
+                  ${!isPaused ? `
+                    <button class="btn btn-secondary" onclick="stopMedicationPlan('${plan.id}')">
+                      <i class="fas fa-pause"></i> 停止
+                    </button>
+                  ` : `
+                    <button class="btn btn-success" onclick="resumeMedicationPlan('${plan.id}')">
+                      <i class="fas fa-play"></i> 恢复
+                    </button>
+                  `}
+                  <button class="btn btn-info" onclick="editMedicationPlan('${plan.id}')">
+                    <i class="fas fa-edit"></i> 编辑
+                  </button>
+                  <button class="btn btn-danger" onclick="deleteMedicationPlan('${plan.id}')">
+                    <i class="fas fa-trash"></i> 删除
+                  </button>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+
+        /**
+         * 编辑用药计划
+         */
+        function editMedicationPlan(id) {
+          if (!isAdminMode) {
+            showNotification('请先进入管理员模式', true);
+            return;
+          }
+          // 转换ID类型以确保比较正确
+          const numericId = typeof id === 'string' ? parseInt(id) : id;
+          const plan = medicationPlans.find(p => p.id === numericId);
+          if (!plan) return;
+          
+          // 显示表单
+          showPlanForm();
+          
+          // 设置编辑模式
+          editingPlanId = id;
+          document.getElementById('planTitle').textContent = '编辑用药计划';
+          
+          // 填充表单数据
+          document.getElementById('planMedicineInput').value = plan.medicine_name;
+          document.getElementById('dailyDose').value = plan.daily_dose;
+          document.getElementById('startDate').value = plan.start_date;
+          
+          // 查找并设置药品信息
+          selectedMedicine = medicines.find(m => m.id === plan.medicine_id);
+          if (selectedMedicine) {
+            // 设置单位
+            const doseUnitSelect = document.getElementById('doseUnit');
+            doseUnitSelect.innerHTML = `<option value="${selectedMedicine.unit}">${selectedMedicine.unit}</option>`;
+            doseUnitSelect.value = selectedMedicine.unit;
+          }
+          
+          // 更新结束日期显示
+          updateEndDateDisplay();
+        }
+
+        /**
+         * 停止用药计划
+         */
+        async function stopMedicationPlan(id) {
+          if (!isAdminMode) {
+            showNotification('请先进入管理员模式', true);
+            return;
+          }
+          // 转换ID类型以确保比较正确
+          const numericId = typeof id === 'string' ? parseInt(id) : id;
+          const plan = medicationPlans.find(p => p.id === numericId);
+          if (!plan || plan.status !== 'active') return;
+          
+          try {
+            // 更新到Supabase
+            await supabaseRequest({
+              path: 'medication_plans',
+              method: 'PATCH',
+              data: { status: 'stopped' },
+              id: id
+            });
+            
+            // 添加修改记录
+            await addModificationLog('pause', 'medicationPlan', plan.medicine_name, {
+              planId: id,
+              previousStatus: 'active',
+              newStatus: 'stopped'
+            });
+            
+            // 重新加载用药计划
+            await loadMedicationPlans();
+            showNotification('用药计划已停止！');
+          } catch (error) {
+            console.error('停止用药计划失败:', error);
+            showNotification('停止用药计划失败！', true);
+          }
+        }
+        
+        /**
+         * 恢复用药计划
+         */
+        async function resumeMedicationPlan(id) {
+          if (!isAdminMode) {
+            showNotification('请先进入管理员模式', true);
+            return;
+          }
+          // 转换ID类型以确保比较正确
+          const numericId = typeof id === 'string' ? parseInt(id) : id;
+          const plan = medicationPlans.find(p => p.id === numericId);
+          if (!plan || plan.status !== 'stopped') return;
+          
+          try {
+            // 更新到Supabase
+            await supabaseRequest({
+              path: 'medication_plans',
+              method: 'PATCH',
+              data: { status: 'active' },
+              id: id
+            });
+            
+            // 添加修改记录
+            await addModificationLog('resume', 'medicationPlan', plan.medicine_name, {
+              planId: id,
+              previousStatus: 'stopped',
+              newStatus: 'active'
+            });
+            
+            // 重新加载用药计划
+            await loadMedicationPlans();
+            showNotification('用药计划已恢复！');
+          } catch (error) {
+            console.error('恢复用药计划失败:', error);
+            showNotification('恢复用药计划失败！', true);
+          }
+        }
+        
+        /**
+         * 删除用药计划
+         */
+        async function deleteMedicationPlan(id) {
+          if (!isAdminMode) {
+            showNotification('请先进入管理员模式', true);
+            return;
+          }
+          if (confirm('确定要删除这个用药计划吗？此操作不可撤销。')) {
+            try {
+              // 转换ID类型以确保比较正确
+              const numericId = typeof id === 'string' ? parseInt(id) : id;
+              const planToDelete = medicationPlans.find(p => p.id === numericId);
+              if (planToDelete) {
+                // 删除Supabase中的记录
+                await supabaseRequest({
+                  path: 'medication_plans',
+                  method: 'DELETE',
+                  id: id
+                });
+                
+                // 添加修改记录
+                await addModificationLog('delete', 'medicationPlan', planToDelete.medicine_name, {
+                  planId: id,
+                  dailyDose: planToDelete.daily_dose,
+                  status: planToDelete.status
+                });
+                
+                // 重新加载用药计划
+                await loadMedicationPlans();
+                showNotification('用药计划已删除！');
+              }
+            } catch (error) {
+              console.error('删除用药计划失败:', error);
+              showNotification('删除用药计划失败！', true);
+            }
+          }
+        }
+
+        /**
+         * 初始化用药计划功能
+         */
+        function initMedicationPlans() {
+          // 确保函数在全局作用域可用
+          window.editMedicationPlan = editMedicationPlan;
+          window.stopMedicationPlan = stopMedicationPlan;
+          window.resumeMedicationPlan = resumeMedicationPlan;
+          window.deleteMedicationPlan = deleteMedicationPlan;
+          
+          // 设置日期输入的默认值为今天
+          const startDateInput = document.getElementById('startDate');
+          if (startDateInput) {
+            const today = new Date().toISOString().split('T')[0];
+            startDateInput.value = today;
+          }
+          
+          // 初始化药品搜索功能
+          initMedicineSearch();
+          
+          // 绑定每日用量变化事件，确保数字能正确显示
+          const dailyDoseInput = document.getElementById('dailyDose');
+          if (dailyDoseInput) {
+            dailyDoseInput.addEventListener('input', updateEndDateDisplay);
+            dailyDoseInput.addEventListener('change', function() {
+              // 确保输入框始终显示数字格式
+              if (this.value && !isNaN(parseFloat(this.value))) {
+                this.value = parseFloat(this.value);
+              }
+            });
+          }
+          
+          // 动态设置用药计划卡片高度与添加新药品卡片一致
+          function setPlansHeight() {
+            const adminPanel = document.querySelector('.admin-panel');
+            const cards = adminPanel?.querySelectorAll('.card');
+            
+            if (cards && cards.length >= 2) {
+              const addMedicineCard = cards[0];
+              const plansCard = cards[1];
+              
+              // 设置用药计划卡片高度与添加新药品卡片一致
+              const addMedicineHeight = addMedicineCard.offsetHeight;
+              plansCard.style.height = addMedicineHeight + 'px';
+              
+              // 调整用药计划列表的最大高度
+              const plansList = plansCard.querySelector('.plans-list');
+              if (plansList) {
+                // 计算列表可用高度：卡片总高度 - 标题高度 - 按钮高度 - 表单高度 - 边距
+                const plansHeader = plansCard.querySelector('h2');
+                const addPlanSection = plansCard.querySelector('#addPlanSection');
+                const planForm = plansCard.querySelector('#planForm');
+                
+                let usedHeight = 0;
+                if (plansHeader) usedHeight += plansHeader.offsetHeight + 20; // 20px 为标题底部边距
+                if (addPlanSection) usedHeight += addPlanSection.offsetHeight + 20; // 20px 为按钮底部边距
+                if (planForm) usedHeight += planForm.offsetHeight + 20; // 20px 为表单底部边距
+                
+                // 设置列表最大高度，减去内边距和额外空间
+                const availableHeight = addMedicineHeight - usedHeight - 40; // 40px 为内边距和额外空间
+                plansList.style.maxHeight = availableHeight + 'px';
+                plansList.style.minHeight = '100px';
+              }
+            }
+          }
+          
+          // 页面加载完成后设置高度
+          setPlansHeight();
+          
+          // 窗口大小变化时重新设置高度
+          window.addEventListener('resize', setPlansHeight);
+        }
+
+        // ==================== 图片处理函数 ====================
+
+        /**
+         * 压缩图片到指定大小
+         */
+        function compressImage(fileOrDataUrl, maxSize, callback) {
+          console.log('开始压缩图片，最大大小:', maxSize);
+          
+          // 处理输入：可以是文件或数据URL
+          const loadImage = (src) => {
+            const img = new Image();
+            img.src = src;
+            img.onload = () => {
+              let canvas = document.createElement('canvas');
+              let ctx = canvas.getContext('2d');
+              let width = img.width;
+              let height = img.height;
+              
+              console.log('原始图片尺寸:', width, 'x', height);
+              
+              // 保持宽高比，大幅缩小图片尺寸以减少数据URL长度
+              const aspectRatio = width / height;
+              if (width > height) {
+                if (width > 600) {
+                  width = 600;
+                  height = width / aspectRatio;
+                }
+              } else {
+                if (height > 600) {
+                  height = 600;
+                  width = height * aspectRatio;
+                }
+              }
+              
+              console.log('调整后图片尺寸:', width, 'x', height);
+              
+              canvas.width = width;
+              canvas.height = height;
+              ctx.drawImage(img, 0, 0, width, height);
+              
+              let quality = 0.7; // 降低初始质量
+              let compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+              
+              console.log('初始压缩后大小:', compressedDataUrl.length);
+              
+              // 递归压缩直到大小合适
+              function compress() {
+                if (compressedDataUrl.length > maxSize && quality > 0.3) {
+                  quality -= 0.1;
+                  compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+                  console.log('继续压缩，质量:', quality, '大小:', compressedDataUrl.length);
+                  compress();
+                } else {
+                  console.log('压缩完成，最终大小:', compressedDataUrl.length, '质量:', quality);
+                  callback(compressedDataUrl);
+                }
+              }
+              
+              compress();
+            };
+          };
+          
+          if (typeof fileOrDataUrl === 'string') {
+            // 如果是数据URL，直接加载
+            loadImage(fileOrDataUrl);
+          } else {
+            // 如果是文件，先读取为数据URL
+            const reader = new FileReader();
+            reader.readAsDataURL(fileOrDataUrl);
+            reader.onload = (e) => {
+              console.log('文件读取完成，准备压缩');
+              loadImage(e.target.result);
+            };
+          }
+        }
+
+        /**
+         * 初始化裁剪功能
+         */
+        function initCropModal() {
+          cropModal = document.getElementById('cropModal');
+          cropCanvas = document.getElementById('cropCanvas');
+          cropCtx = cropCanvas.getContext('2d');
+          
+          const closeCropModal = document.getElementById('closeCropModal');
+          const cancelCrop = document.getElementById('cancelCrop');
+          const confirmCrop = document.getElementById('confirmCrop');
+          
+          // 绑定裁剪模态框事件
+          if (closeCropModal) closeCropModal.addEventListener('click', closeCropModalHandler);
+          if (cancelCrop) cancelCrop.addEventListener('click', closeCropModalHandler);
+          if (confirmCrop) confirmCrop.addEventListener('click', confirmCropHandler);
+          
+          // 绑定裁剪画布事件
+          if (cropCanvas) {
+            cropCanvas.addEventListener('mousedown', cropMouseDown);
+            cropCanvas.addEventListener('mousemove', cropMouseMove);
+            cropCanvas.addEventListener('mouseup', cropMouseUp);
+            cropCanvas.addEventListener('mouseleave', cropMouseUp);
+          }
+          
+          // 点击模态框外部关闭
+          if (cropModal) {
+            cropModal.addEventListener('click', (e) => {
+              if (e.target === cropModal) {
+                closeCropModalHandler();
+              }
+            });
+          }
+        }
+
+        /**
+         * 关闭裁剪模态框
+         */
+        function closeCropModalHandler() {
+          if (cropModal) cropModal.style.display = 'none';
+          originalImage = null;
+          currentCropTarget = null;
+          currentCropInput = null;
+          currentCropPreview = null;
+          currentCropVariable = null;
+        }
+
+        // 裁剪相关常量
+        const MIN_CROP_SIZE = 50;
+        const HANDLE_SIZE = 8;
+
+        /**
+         * 初始化裁剪框
+         */
+        function initializeCropBox(canvasWidth, canvasHeight) {
+          // 计算最大可能的裁剪宽度和高度（保持3:2比例）
+          let maxWidth = canvasWidth;
+          let maxHeight = maxWidth * (2/3);
+          
+          if (maxHeight > canvasHeight) {
+            maxHeight = canvasHeight;
+            maxWidth = maxHeight * (3/2);
+          }
+          
+          // 默认创建一个居中的裁剪框，大小为最大可能的3:2比例
+          cropStartX = (canvasWidth - maxWidth) / 2;
+          cropStartY = (canvasHeight - maxHeight) / 2;
+          cropWidth = maxWidth;
+          cropHeight = maxHeight;
+          
+          // 重新绘制图片和裁剪框
+          drawImageAndCropBox();
+        }
+
+        /**
+         * 绘制图片和裁剪框
+         */
+        function drawImageAndCropBox() {
+          if (!cropCanvas || !originalImage) return;
+          
+          // 清除画布
+          cropCtx.clearRect(0, 0, cropCanvas.width, cropCanvas.height);
+          
+          // 绘制原始图片
+          cropCtx.drawImage(originalImage, 0, 0, cropCanvas.width, cropCanvas.height);
+          
+          // 绘制半透明遮罩（使用4个矩形，而不是覆盖整个画布）
+          cropCtx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+          
+          // 上遮罩
+          cropCtx.fillRect(0, 0, cropCanvas.width, cropStartY);
+          // 左遮罩
+          cropCtx.fillRect(0, cropStartY, cropStartX, cropHeight);
+          // 右遮罩
+          cropCtx.fillRect(cropStartX + cropWidth, cropStartY, cropCanvas.width - (cropStartX + cropWidth), cropHeight);
+          // 下遮罩
+          cropCtx.fillRect(0, cropStartY + cropHeight, cropCanvas.width, cropCanvas.height - (cropStartY + cropHeight));
+          
+          // 绘制裁剪框边框
+          cropCtx.strokeStyle = '#fff';
+          cropCtx.lineWidth = 2;
+          cropCtx.strokeRect(cropStartX, cropStartY, cropWidth, cropHeight);
+          
+          // 绘制裁剪框控制点
+          drawCropHandles();
+        }
+
+        /**
+         * 绘制裁剪框控制点
+         */
+        function drawCropHandles() {
+          cropCtx.fillStyle = '#4a6fa5';
+          cropCtx.strokeStyle = '#fff';
+          cropCtx.lineWidth = 1;
+          
+          // 左上角
+          drawHandle(cropStartX - HANDLE_SIZE/2, cropStartY - HANDLE_SIZE/2);
+          // 右上角
+          drawHandle(cropStartX + cropWidth - HANDLE_SIZE/2, cropStartY - HANDLE_SIZE/2);
+          // 左下角
+          drawHandle(cropStartX - HANDLE_SIZE/2, cropStartY + cropHeight - HANDLE_SIZE/2);
+          // 右下角
+          drawHandle(cropStartX + cropWidth - HANDLE_SIZE/2, cropStartY + cropHeight - HANDLE_SIZE/2);
+        }
+
+        /**
+         * 绘制单个控制点
+         */
+        function drawHandle(x, y) {
+          cropCtx.fillRect(x, y, HANDLE_SIZE, HANDLE_SIZE);
+          cropCtx.strokeRect(x, y, HANDLE_SIZE, HANDLE_SIZE);
+        }
+
+        /**
+         * 检测鼠标是否在控制点上
+         */
+        function getHandleAtPosition(x, y) {
+          // 检查四个角的控制点
+          const handles = [
+            { name: 'top-left', x: cropStartX, y: cropStartY },
+            { name: 'top-right', x: cropStartX + cropWidth, y: cropStartY },
+            { name: 'bottom-left', x: cropStartX, y: cropStartY + cropHeight },
+            { name: 'bottom-right', x: cropStartX + cropWidth, y: cropStartY + cropHeight }
+          ];
+          
+          for (const handle of handles) {
+            if (x >= handle.x - HANDLE_SIZE && x <= handle.x + HANDLE_SIZE &&
+                y >= handle.y - HANDLE_SIZE && y <= handle.y + HANDLE_SIZE) {
+              return handle.name;
+            }
+          }
+          
+          // 检查是否在裁剪框内部
+          if (x >= cropStartX && x <= cropStartX + cropWidth &&
+              y >= cropStartY && y <= cropStartY + cropHeight) {
+            return 'inside';
+          }
+          
+          return null;
+        }
+
+        /**
+         * 鼠标按下事件处理
+         */
+        function cropMouseDown(e) {
+          const rect = cropCanvas.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          
+          dragMode = getHandleAtPosition(x, y);
+          if (dragMode) {
+            isDragging = true;
+            dragStartX = x;
+            dragStartY = y;
+            // 保存当前裁剪框的状态，用于调整时计算
+            cropStartXOriginal = cropStartX;
+            cropStartYOriginal = cropStartY;
+            cropWidthOriginal = cropWidth;
+            cropHeightOriginal = cropHeight;
+          }
+        }
+
+        /**
+         * 鼠标移动事件处理
+         */
+        function cropMouseMove(e) {
+          if (!isDragging || !dragMode) return;
+          
+          const rect = cropCanvas.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          
+          // 计算鼠标移动的距离
+          const deltaX = x - dragStartX;
+          const deltaY = y - dragStartY;
+          
+          // 重置裁剪框为原始状态，然后根据移动距离调整
+          cropStartX = cropStartXOriginal;
+          cropStartY = cropStartYOriginal;
+          cropWidth = cropWidthOriginal;
+          cropHeight = cropHeightOriginal;
+          
+          // 根据拖拽模式调整裁剪框
+          switch (dragMode) {
+            case 'inside':
+              // 移动整个裁剪框
+              cropStartX += deltaX;
+              cropStartY += deltaY;
+              
+              // 限制在画布内
+              cropStartX = Math.max(0, Math.min(cropCanvas.width - cropWidth, cropStartX));
+              cropStartY = Math.max(0, Math.min(cropCanvas.height - cropHeight, cropStartY));
+              break;
+              
+            case 'top-left':
+              // 调整左上角
+              cropStartX += deltaX;
+              cropStartY += deltaY;
+              cropWidth -= deltaX;
+              cropHeight -= deltaY;
+              break;
+              
+            case 'top-right':
+              // 调整右上角
+              cropStartY += deltaY;
+              cropWidth += deltaX;
+              cropHeight -= deltaY;
+              break;
+              
+            case 'bottom-left':
+              // 调整左下角
+              cropStartX += deltaX;
+              cropWidth -= deltaX;
+              cropHeight += deltaY;
+              break;
+              
+            case 'bottom-right':
+              // 调整右下角
+              cropWidth += deltaX;
+              cropHeight += deltaY;
+              break;
+          }
+          
+          // 计算基于当前调整的比例
+          const currentRatio = cropWidth / cropHeight;
+          
+          // 保持3:2的宽高比例
+          const targetRatio = 3/2;
+          
+          if (Math.abs(currentRatio - targetRatio) > 0.001) {
+            // 根据高度计算宽度，保持比例
+            if (dragMode === 'top-left' || dragMode === 'bottom-right') {
+              cropWidth = cropHeight * targetRatio;
+            } else {
+              // 或者根据宽度计算高度，保持比例
+              cropHeight = cropWidth / targetRatio;
+            }
+          }
+          
+          // 确保裁剪框大小不小于最小尺寸
+          if (cropWidth < MIN_CROP_SIZE) {
+            cropWidth = MIN_CROP_SIZE;
+            cropHeight = cropWidth / targetRatio;
+          }
+          
+          if (cropHeight < MIN_CROP_SIZE) {
+            cropHeight = MIN_CROP_SIZE;
+            cropWidth = cropHeight * targetRatio;
+          }
+          
+          // 确保裁剪框不超出画布
+          cropStartX = Math.max(0, cropStartX);
+          cropStartY = Math.max(0, cropStartY);
+          
+          // 确保裁剪框不超出画布右下角
+          const maxX = cropCanvas.width - cropWidth;
+          const maxY = cropCanvas.height - cropHeight;
+          
+          cropStartX = Math.min(maxX, cropStartX);
+          cropStartY = Math.min(maxY, cropStartY);
+          
+          // 确保裁剪框不会为负数
+          cropWidth = Math.max(0, Math.min(cropCanvas.width, cropWidth));
+          cropHeight = Math.max(0, Math.min(cropCanvas.height, cropHeight));
+          
+          // 重新绘制
+          drawImageAndCropBox();
+        }
+
+        /**
+         * 鼠标释放事件处理
+         */
+        function cropMouseUp() {
+          isDragging = false;
+          dragMode = '';
+        }
+
+        /**
+         * 确认裁剪处理
+         */
+        async function confirmCropHandler() {
+          if (!cropCanvas || !originalImage || !currentCropPreview || !currentCropVariable) return;
+          
+          // 创建一个临时画布来绘制裁剪后的图片
+          const tempCanvas = document.createElement('canvas');
+          const tempCtx = tempCanvas.getContext('2d');
+          
+          // 设置临时画布大小为裁剪区域大小
+          tempCanvas.width = cropWidth;
+          tempCanvas.height = cropHeight;
+          
+          // 计算裁剪区域在原始图片中的比例
+          const scaleX = originalImage.width / cropCanvas.width;
+          const scaleY = originalImage.height / cropCanvas.height;
+          
+          // 在临时画布上绘制裁剪后的图片
+          tempCtx.drawImage(
+            originalImage,
+            cropStartX * scaleX,
+            cropStartY * scaleY,
+            cropWidth * scaleX,
+            cropHeight * scaleY,
+            0,
+            0,
+            cropWidth,
+            cropHeight
+          );
+          
+          try {
+            // 将画布转换为Blob对象，指定类型为image/jpeg
+            tempCanvas.toBlob(async (blob) => {
+              if (!blob) {
+                console.error('无法将画布转换为Blob');
+                showNotification('图片处理失败，请重试', true);
+                closeCropModalHandler();
+                return;
+              }
+              
+              try {
+                // 上传图片到Supabase Storage
+                const fileName = `${currentCropVariable}_${Date.now()}.jpg`;
+                const imageUrl = await uploadImageToStorage(blob, fileName);
+                
+                // 更新预览
+                currentCropPreview.innerHTML = `<img src="${imageUrl}" style="width: 100%; height: 100%; object-fit: cover;" />`;
+                
+                // 保存到变量
+                window[currentCropVariable] = imageUrl;
+                console.log('图片裁剪并上传完成，保存到变量:', currentCropVariable, 'URL:', imageUrl);
+                
+                // 添加新的调试日志和通知
+                console.log('📸 图片URL已保存到变量:', currentCropVariable, '值:', imageUrl);
+                showNotification('图片已准备就绪', false);
+              } catch (error) {
+                console.error('图片上传失败:', error);
+                showNotification('图片上传失败，请重试', true);
+              } finally {
+                // 关闭裁剪模态框
+                closeCropModalHandler();
+              }
+            }, 'image/jpeg', 0.9); // 添加类型和质量参数
+          } catch (error) {
+            console.error('图片处理失败:', error);
+            showNotification('图片处理失败，请重试', true);
+            closeCropModalHandler();
+          }
+        }
+
+        /**
+         * 显示裁剪模态框
+         */
+        function showCropModal(file, target, input, preview, variable) {
+          currentCropTarget = target;
+          currentCropInput = input;
+          currentCropPreview = preview;
+          currentCropVariable = variable;
+          
+          const reader = new FileReader();
+          reader.readAsDataURL(file);
+          reader.onload = (e) => {
+            originalImage = new Image();
+            originalImage.src = e.target.result;
+            originalImage.onload = () => {
+              // 设置画布大小
+              const maxCanvasSize = 600;
+              let canvasWidth = originalImage.width;
+              let canvasHeight = originalImage.height;
+              
+              // 调整图片大小以适应画布
+              if (canvasWidth > maxCanvasSize || canvasHeight > maxCanvasSize) {
+                const aspectRatio = canvasWidth / canvasHeight;
+                if (aspectRatio > 1) {
+                  canvasWidth = maxCanvasSize;
+                  canvasHeight = maxCanvasSize / aspectRatio;
+                } else {
+                  canvasHeight = maxCanvasSize;
+                  canvasWidth = maxCanvasSize * aspectRatio;
+                }
+              }
+              
+              if (cropCanvas) {
+                cropCanvas.width = canvasWidth;
+                cropCanvas.height = canvasHeight;
+                
+                // 绘制原始图片
+                cropCtx.drawImage(originalImage, 0, 0, canvasWidth, canvasHeight);
+                
+                // 初始化裁剪框
+                initializeCropBox(canvasWidth, canvasHeight);
+              }
+              
+              // 显示裁剪模态框
+              if (cropModal) cropModal.style.display = 'flex';
+            };
+          };
+        }
+
+        /**
+         * 处理图片上传
+         */
+        function handleImageUpload(input, previewElement, imageVariable) {
+          const file = input.files[0];
+          if (!file) return;
+          
+          if (file.type.startsWith('image/')) {
+            // 显示裁剪模态框
+            showCropModal(file, 'medicine', input, previewElement, imageVariable);
+          } else {
+            showNotification('请选择有效的图片文件', true);
+          }
+        }
+
+        /**
+         * 重置图片上传
+         */
+        function resetImageUpload(input, previewElement, imageVariable) {
+          input.value = '';
+          previewElement.innerHTML = '<i class="fas fa-camera"></i><p>点击上传图片</p>';
+          window[imageVariable] = null;
+        }
+
+        // ==================== 通知函数 ====================
+
+        /**
+         * 显示通知
+         */
+        function showNotification(message, isError = false) {
+          const notification = document.getElementById('notification');
+          const notificationText = document.getElementById('notificationText');
+          
+          if (!notification || !notificationText) return;
+          
+          notificationText.textContent = message;
+          notification.className = 'notification';
+          
+          if (isError) {
+            notification.classList.add('error');
+            notification.querySelector('i').className = 'fas fa-exclamation-circle';
+          } else {
+            notification.querySelector('i').className = 'fas fa-check-circle';
+          }
+          
+          notification.classList.add('show');
+          
+          setTimeout(() => {
+            notification.classList.remove('show');
+          }, 3000);
+        }
+
+        // ==================== 管理员相关函数 ====================
+
+        /**
+         * 检查管理员模式
+         */
+        function checkAdminMode() {
+          const savedMode = localStorage.getItem('medicineAdminMode');
+          if (savedMode === 'true') {
+            isAdminMode = true;
+            updateAdminUI();
+          }
+        }
+
+        /**
+         * 管理员登录
+         */
+        function loginAsAdmin() {
+          const passwordInput = document.getElementById('adminPassword');
+          if (!passwordInput) return;
+          
+          const password = passwordInput.value;
+          if (password === ADMIN_PASSWORD) {
+            isAdminMode = true;
+            localStorage.setItem('medicineAdminMode', 'true');
+            updateAdminUI();
+            showNotification('管理员模式已启用');
+          } else {
+            showNotification('密码错误', true);
+          }
+          passwordInput.value = '';
+        }
+
+        /**
+         * 管理员登出
+         */
+        function logoutAdmin() {
+          isAdminMode = false;
+          localStorage.removeItem('medicineAdminMode');
+          updateAdminUI();
+          showNotification('已退出管理员模式');
+        }
+
+        /**
+         * 更新管理员界面
+         */
+        function updateAdminUI() {
+          const viewLogsBtn = document.getElementById('viewLogsBtn');
+          const loginBtn = document.getElementById('loginBtn');
+          const logoutBtn = document.getElementById('logoutBtn');
+          const adminPasswordInput = document.getElementById('adminPassword');
+          
+          if (!isAdminMode) {
+            document.body.classList.add('readonly-mode');
+            if (loginBtn) loginBtn.style.display = 'inline-flex';
+            if (logoutBtn) logoutBtn.style.display = 'none';
+            if (viewLogsBtn) viewLogsBtn.style.display = 'none';
+            if (adminPasswordInput) adminPasswordInput.style.display = 'block';
+          } else {
+            document.body.classList.remove('readonly-mode');
+            if (loginBtn) loginBtn.style.display = 'none';
+            if (logoutBtn) logoutBtn.style.display = 'inline-flex';
+            if (viewLogsBtn) viewLogsBtn.style.display = 'inline-flex';
+            if (adminPasswordInput) adminPasswordInput.style.display = 'none';
+          }
+        }
+        // ==================== DOM 初始化和事件监听器 ====================
+
+        /**
+         * 初始化DOM元素引用
+         */
+        function initializeDOMElements() {
+          // 表单和按钮
+          medicineForm = document.getElementById('medicineForm');
+          editForm = document.getElementById('editForm');
+          closeModal = document.getElementById('closeModal');
+          cancelEdit = document.getElementById('cancelEdit');
+          searchInput = document.getElementById('searchInput');
+          categoryFilter = document.getElementById('categoryFilter');
+          lowStockBtn = document.getElementById('lowStockBtn');
+          deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+          loginBtn = document.getElementById('loginBtn');
+          logoutBtn = document.getElementById('logoutBtn');
+          viewLogsBtn = document.getElementById('viewLogsBtn');
+          closeLogsModal = document.getElementById('closeLogsModal');
+          clearLogsBtn = document.getElementById('clearLogsBtn');
+          
+          // 通知和模态框
+          notification = document.getElementById('notification');
+          notificationText = document.getElementById('notificationText');
+          adminPasswordInput = document.getElementById('adminPassword');
+          logsModal = document.getElementById('logsModal');
+          logsContainer = document.getElementById('logsContainer');
+          
+          // 统计元素
+          totalCountElement = document.getElementById('totalCount');
+          lowStockCountElement = document.getElementById('lowStockCount');
+          outOfStockCountElement = document.getElementById('outOfStockCount');
+          plansCountElement = document.getElementById('plansCount');
+        }
+
+        /**
+         * 应用程序初始化函数
+         */
+        async function initializeApp() {
+          console.log('页面加载完成，开始初始化...');
+          
+          try {
+            // 检查配置是否已加载
+            if (typeof SUPABASE_CONFIG === 'undefined') {
+              console.error('配置文件加载失败，SUPABASE_CONFIG未定义');
+              showNotification('配置文件加载失败，请检查网络连接', true);
+              return;
+            }
+            
+            // 1. 初始化DOM元素引用
+            initializeDOMElements();
+            
+            // 2. 测试Supabase连接
+            await testSupabaseConnection();
+            
+            // 3. 初始化同步功能
+            initSyncFeatures();
+            
+            // 4. 添加必要样式
+            addQuantityUnitStyles();
+            
+            // 5. 绑定事件监听器
+            bindEventListeners();
+            
+            // 6. 绑定图片上传事件
+            bindImageUploadEvents();
+            
+            // 7. 初始化功能模块
+            initializeFeatureModules();
+            
+            // 8. 检查管理员模式
+            checkAdminMode();
+            
+            // 9. 加载应用数据
+            loadAppData();
+            
+            // 10. 设置页面生命周期事件
+            setupPageLifecycleEvents();
+            
+            console.log('应用初始化完成！');
+          } catch (error) {
+            console.error('应用初始化失败:', error);
+            showNotification('应用初始化失败，请刷新页面重试', true);
+          }
+        }
+        
+        /**
+         * 添加数量单位样式
+         */
+        function addQuantityUnitStyles() {
+          const style = document.createElement('style');
+          style.textContent = `
+            .quantity-unit {
+              display: flex;
+              gap: 10px;
+            }
+            .quantity-unit input {
+              flex: 1;
+            }
+            .quantity-unit select {
+              min-width: 120px;
+            }
+          `;
+          document.head.appendChild(style);
+        }
+        
+        /**
+         * 绑定事件监听器
+         */
+        function bindEventListeners() {
+          if (medicineForm) medicineForm.addEventListener('submit', addMedicine);
+          if (editForm) editForm.addEventListener('submit', updateMedicine);
+          if (closeModal) closeModal.addEventListener('click', () => editModal.style.display = 'none');
+          if (cancelEdit) cancelEdit.addEventListener('click', () => editModal.style.display = 'none');
+          if (searchInput) searchInput.addEventListener('input', filterMedicines);
+          if (categoryFilter) categoryFilter.addEventListener('change', filterMedicines);
+          if (lowStockBtn) lowStockBtn.addEventListener('click', markLowStock);
+          if (deleteSelectedBtn) deleteSelectedBtn.addEventListener('click', deleteSelectedMedicines);
+          if (loginBtn) loginBtn.addEventListener('click', loginAsAdmin);
+          if (logoutBtn) logoutBtn.addEventListener('click', logoutAdmin);
+          if (viewLogsBtn) viewLogsBtn.addEventListener('click', showModificationLogs);
+          if (closeLogsModal) closeLogsModal.addEventListener('click', hideModificationLogs);
+          if (clearLogsBtn) clearLogsBtn.addEventListener('click', clearModificationLogs);
+        }
+        
+        /**
+         * 绑定图片上传事件
+         */
+        function bindImageUploadEvents() {
+          const medicineImageInput = document.getElementById('medicineImage');
+          const medicineImagePreview = document.getElementById('medicineImagePreview');
+          const editImageInput = document.getElementById('editImage');
+          const editImagePreview = document.getElementById('editImagePreview');
+          const removeImageBtn = document.getElementById('removeImageBtn');
+          
+          if (medicineImagePreview) {
+            medicineImagePreview.addEventListener('click', () => {
+              if (medicineImageInput) medicineImageInput.click();
+            });
+          }
+          
+          if (medicineImageInput) {
+            medicineImageInput.addEventListener('change', (e) => {
+              handleImageUpload(e.target, medicineImagePreview, 'currentMedicineImage');
+            });
+          }
+          
+          if (editImagePreview) {
+            editImagePreview.addEventListener('click', () => {
+              if (editImageInput) editImageInput.click();
+            });
+          }
+          
+          if (editImageInput) {
+            editImageInput.addEventListener('change', (e) => {
+              handleImageUpload(e.target, editImagePreview, 'currentEditImage');
+              if (removeImageBtn) removeImageBtn.style.display = 'block';
+            });
+          }
+          
+          if (removeImageBtn) {
+            removeImageBtn.addEventListener('click', async () => {
+              // 如果有图片需要删除
+              if (currentEditImage) {
+                try {
+                  await deleteImageFromStorage(currentEditImage);
+                  console.log('已从Storage中删除图片:', currentEditImage);
+                } catch (error) {
+                  console.error('删除图片失败:', error);
+                }
+              }
+              
+              currentEditImage = null;
+              if (editImagePreview) editImagePreview.innerHTML = '<i class="fas fa-camera"></i><p>点击上传图片</p>';
+              removeImageBtn.style.display = 'none';
+            });
+          }
+        }
+        
+        /**
+         * 初始化功能模块
+         */
+        function initializeFeatureModules() {
+          if (typeof initCropModal === 'function') initCropModal();
+          if (typeof initAutocomplete === 'function') initAutocomplete();
+          if (typeof initMedicationPlans === 'function') initMedicationPlans();
+        }
+        
+        /**
+         * 加载应用数据
+         */
+        function loadAppData() {
+          // 延迟加载数据（避免阻塞页面渲染）
+          setTimeout(async () => {
+            try {
+              console.log('开始初始化数据加载...');
+              
+              // 同时加载所有数据
+              await Promise.all([
+                loadMedicines(),
+                loadMedicationPlans(),
+                loadModificationLogs()
+              ]);
+              
+              // 启动自动同步
+              startAutoSync();
+              
+              // 更新状态
+              updateSyncStatus('success', '初始化完成');
+              updateLastSyncTime();
+              showNotification('系统初始化完成');
+              
+              console.log('数据初始化完成');
+              
+            } catch (error) {
+              console.error('初始化失败:', error);
+              updateSyncStatus('error', '初始化失败');
+              showNotification('初始化失败，请刷新页面重试', true);
+            }
+          }, 800); // 给DOM一点时间完全渲染
+        }
+        
+        /**
+         * 设置页面生命周期事件
+         */
+        function setupPageLifecycleEvents() {
+          // 页面可见性变化时控制同步
+          document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+              // 页面不可见时停止自动同步以节省资源
+              console.log('页面不可见，停止自动同步');
+              stopAutoSync();
+              updateSyncStatus('default', '同步暂停');
+            } else {
+              // 页面可见时恢复自动同步
+              console.log('页面可见，恢复自动同步');
+              startAutoSync();
+              updateSyncStatus('syncing', '恢复同步...');
+              
+              // 如果离开时间较长（超过2分钟），立即同步一次
+              setTimeout(() => {
+                syncAllData();
+              }, 1000);
+            }
+          });
+          
+          // 页面卸载前清理
+          window.addEventListener('beforeunload', () => {
+            stopAutoSync();
+          });
+        }
+        
+        // 页面加载完成后初始化应用
+        document.addEventListener('DOMContentLoaded', initializeApp);
+
+        // 点击模态框外部关闭
+        window.addEventListener('click', (e) => {
+          const editModal = document.getElementById('editModal');
+          const logsModal = document.getElementById('logsModal');
+          const cropModal = document.getElementById('cropModal');
+          
+          if (e.target === editModal) {
+            editModal.style.display = 'none';
+          } else if (e.target === logsModal) {
+            hideModificationLogs();
+          } else if (e.target === cropModal) {
+            cropModal.style.display = 'none';
+          }
+        });
+
+        // ==================== 辅助函数 ====================
+
+        /**
+         * 拼音搜索辅助函数
+         * 检查字符串是否包含拼音匹配
+         */
+        function matchPinyin(str, query) {
+          const lowercaseQuery = query.toLowerCase();
+          const lowercaseStr = str.toLowerCase();
+          
+          // 直接匹配
+          if (lowercaseStr.includes(lowercaseQuery)) {
+            return true;
+          }
+          
+          // 拼音映射表（常用汉字的拼音首字母）
+          const pinyinMap = {
+            'a': ['阿', '啊', '吖', '呵', '嗄', '腌'],
+            'b': ['八', '把', '爸', '吧', '拔', '跋', '芭', '疤', '笆', '捌', '扒', '拔', '波', '玻', '博', '勃', '泊', '播', '伯', '薄', '箔', '簸', '膊', '渤', '脖', '铂', '泊', '剥', '驳', '博', '卜', '补', '捕', '哺', '不', '布', '步', '部', '簿', '堡', '报', '抱', '暴', '爆', '胞', '包', '宝', '保', '饱', '褒', '堡', '豹', '暴', '爆', '刨', '瀑', '暴', '爆', '薄', '泊', '铂', '渤', '播', '伯', '驳', '帛', '泊', '舶', '箔', '簸', '跛', '簸', '膊', '渤', '脖', '铂', '泊', '剥', '驳', '博', '卜', '补', '捕', '哺', '不', '布', '步', '部', '簿', '堡', '报', '抱', '暴', '爆', '胞', '包', '宝', '保', '饱', '褒', '堡', '豹', '暴', '爆', '刨', '瀑', '暴', '爆', '薄', '泊', '铂', '渤', '播', '伯', '驳', '帛', '泊', '舶', '箔', '簸', '跛', '簸', '膊', '渤', '脖', '铂', '泊', '剥', '驳', '博'],
+            'c': ['次', '刺', '词', '此', '慈', '磁', '雌', '辞', '赐', '瓷', '慈', '雌', '辞', '赐', '瓷', '次', '刺', '词', '此', '慈', '磁', '雌', '辞', '赐', '瓷', '慈', '雌', '辞', '赐', '瓷', '次', '刺', '词', '此', '慈', '磁', '雌', '辞', '赐', '瓷', '慈', '雌', '辞', '赐', '瓷', '次', '刺', '词', '此', '慈', '磁', '雌', '辞', '赐', '瓷', '慈', '雌', '辞', '赐', '瓷', '次', '刺', '词', '此', '慈', '磁', '雌', '辞', '赐', '瓷', '慈', '雌', '辞', '赐', '瓷', '次', '刺', '词', '此', '慈', '磁', '雌', '辞', '赐', '瓷', '慈', '雌', '辞', '赐', '瓷', '次', '刺', '词', '此', '慈', '磁', '雌', '辞', '赐', '瓷', '慈', '雌', '辞', '赐', '瓷', '次', '刺', '词', '此', '慈', '磁', '雌', '辞', '赐', '瓷'],
+            'd': ['的', '地', '得', '等', '低', '底', '抵', '弟', '帝', '递', '第', '滴', '迪', '敌', '笛', '狄', '涤', '翟', '嫡', '抵', '帝', '递', '第', '底', '低', '敌', '笛', '狄', '涤', '翟', '嫡', '抵', '帝', '递', '第', '底', '低', '敌', '笛', '狄', '涤', '翟', '嫡', '抵', '帝', '递', '第', '底', '低', '敌', '笛', '狄', '涤', '翟', '嫡', '抵', '帝', '递', '第', '底', '低', '敌', '笛', '狄', '涤', '翟', '嫡', '抵', '帝', '递', '第', '底', '低', '敌', '笛', '狄', '涤', '翟', '嫡', '抵', '帝', '递', '第', '底', '低', '敌', '笛', '狄', '涤', '翟', '嫡', '抵', '帝', '递', '第', '底', '低', '敌', '笛', '狄', '涤', '翟', '嫡', '抵', '帝', '递', '第', '底', '低'],
+            'e': ['额', '俄', '哦', '鹅', '饿', '恶', '扼', '鄂', '遏', '厄', '谔', '垩', '噩', '腭', '萼', '谔', '鹗', '颚', '饿', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥', '峨', '娥'],
+            'f': ['发', '法', '罚', '伐', '阀', '乏', '筏', '罚', '阀', '法', '发', '法', '罚', '伐', '阀', '乏', '筏', '罚', '阀', '法', '发', '法', '罚', '伐', '阀', '乏', '筏', '罚', '阀', '法', '发', '法', '罚', '伐', '阀', '乏', '筏', '罚', '阀', '法', '发', '法', '罚', '伐', '阀', '乏', '筏', '罚', '阀', '法', '发', '法', '罚', '伐', '阀', '乏', '筏', '罚', '阀', '法', '发', '法', '罚', '伐', '阀', '乏', '筏', '罚', '阀', '法', '发', '法', '罚', '伐', '阀', '乏', '筏', '罚', '阀', '法', '发', '法', '罚', '伐', '阀', '乏', '筏', '罚', '阀', '法', '发', '法', '罚', '伐', '阀', '乏', '筏', '罚', '阀', '法'],
+            'g': ['个', '各', '格', '哥', '歌', '搁', '戈', '疙', '鸽', '割', '革', '葛', '格', '蛤', '阁', '隔', '铬', '镉', '个', '各', '格', '哥', '歌', '搁', '戈', '疙', '鸽', '割', '革', '葛', '格', '蛤', '阁', '隔', '铬', '镉', '个', '各', '格', '哥', '歌', '搁', '戈', '疙', '鸽', '割', '革', '葛', '格', '蛤', '阁', '隔', '铬', '镉', '个', '各', '格', '哥', '歌', '搁', '戈', '疙', '鸽', '割', '革', '葛', '格', '蛤', '阁', '隔', '铬', '镉', '个', '各', '格', '哥', '歌', '搁', '戈', '疙', '鸽', '割', '革', '葛', '格', '蛤', '阁', '隔', '铬', '镉', '个', '各', '格', '哥', '歌', '搁', '戈', '疙', '鸽', '割', '革', '葛', '格', '蛤', '阁', '隔', '铬', '镉'],
+            'h': ['和', '何', '合', '盒', '核', '河', '荷', '赫', '鹤', '黑', '嘿', '痕', '很', '狠', '恨', '哼', '亨', '横', '衡', '恒', '轰', '哄', '烘', '红', '洪', '鸿', '虹', '宏', '弘', '红', '洪', '鸿', '虹', '宏', '弘', '红', '洪', '鸿', '虹', '宏', '弘', '红', '洪', '鸿', '虹', '宏', '弘', '红', '洪', '鸿', '虹', '宏', '弘', '红', '洪', '鸿', '虹', '宏', '弘', '红', '洪', '鸿', '虹', '宏', '弘', '红', '洪', '鸿', '虹', '宏', '弘', '红', '洪', '鸿', '虹', '宏', '弘', '红', '洪', '鸿', '虹', '宏', '弘', '红', '洪', '鸿', '虹', '宏', '弘', '红', '洪', '鸿', '虹', '宏', '弘', '红', '洪', '鸿', '虹', '宏', '弘', '红'],
+            'i': ['一', '衣', '医', '依', '伊', '仪', '宜', '移', '遗', '疑', '乙', '已', '以', '矣', '易', '异', '议', '译', '驿', '役', '抑', '逸', '溢', '诣', '疫', '亿', '忆', '艺', '臆', '屹', '亦', '奕', '益', '义', '意', '毅', '翼', '翌', '绎', '懿', '肄', '裔', '溢', '诣', '疫', '亿', '忆', '艺', '臆', '屹', '亦', '奕', '益', '义', '意', '毅', '翼', '翌', '绎', '懿', '肄', '裔', '溢', '诣', '疫', '亿', '忆', '艺', '臆', '屹', '亦', '奕', '益', '义', '意', '毅', '翼', '翌', '绎', '懿', '肄', '裔', '溢', '诣', '疫'],
+            'j': ['几', '机', '基', '记', '计', '季', '击', '吉', '即', '及', '级', '极', '集', '籍', '辑', '吉', '即', '及', '级', '极', '集', '籍', '辑', '吉', '即', '及', '级', '极', '集', '籍', '辑', '吉', '即', '及', '级', '极', '集', '籍', '辑', '吉', '即', '及', '级', '极', '集', '籍', '辑', '吉', '即', '及', '级', '极', '集', '籍', '辑', '吉', '即', '及', '级', '极', '集', '籍', '辑', '吉', '即', '及', '级', '极', '集', '籍', '辑', '吉', '即', '及', '级', '极', '集', '籍', '辑', '吉', '即', '及', '级', '极', '集', '籍', '辑', '吉', '即', '及', '级', '极', '集', '籍', '辑'],
+            'k': ['可', '克', '科', '课', '壳', '咳', '渴', '刻', '客', '恪', '柯', '棵', '颗', '磕', '瞌', '嗑', '壳', '咳', '渴', '刻', '客', '恪', '柯', '棵', '颗', '磕', '瞌', '嗑', '壳', '咳', '渴', '刻', '客', '恪', '柯', '棵', '颗', '磕', '瞌', '嗑', '壳', '咳', '渴', '刻', '客', '恪', '柯', '棵', '颗', '磕', '瞌', '嗑', '壳', '咳', '渴', '刻', '客', '恪', '柯', '棵', '颗', '磕', '瞌', '嗑', '壳', '咳', '渴', '刻', '客', '恪', '柯', '棵', '颗', '磕', '瞌', '嗑', '壳', '咳', '渴', '刻', '客', '恪', '柯', '棵', '颗', '磕', '瞌', '嗑'],
+            'l': ['了', '乐', '勒', '雷', '类', '累', '泪', '磊', '蕾', '儡', '肋', '泪', '垒', '擂', '雷', '类', '累', '泪', '磊', '蕾', '儡', '肋', '泪', '垒', '擂', '雷', '类', '累', '泪', '磊', '蕾', '儡', '肋', '泪', '垒', '擂', '雷', '类', '累', '泪', '磊', '蕾', '儡', '肋', '泪', '垒', '擂', '雷', '类', '累', '泪', '磊', '蕾', '儡', '肋', '泪', '垒', '擂', '雷', '类', '累', '泪', '磊', '蕾', '儡', '肋', '泪', '垒', '擂', '雷', '类', '累', '泪', '磊', '蕾', '儡', '肋', '泪', '垒', '擂', '雷', '类', '累', '泪', '磊', '蕾', '儡', '肋', '泪', '垒', '擂'],
+            'm': ['吗', '马', '妈', '骂', '麻', '码', '玛', '蚂', '蟆', '嘛', '马', '妈', '骂', '麻', '码', '玛', '蚂', '蟆', '嘛', '马', '妈', '骂', '麻', '码', '玛', '蚂', '蟆', '嘛', '马', '妈', '骂', '麻', '码', '玛', '蚂', '蟆', '嘛', '马', '妈', '骂', '麻', '码', '玛', '蚂', '蟆', '嘛', '马', '妈', '骂', '麻', '码', '玛', '蚂', '蟆', '嘛', '马', '妈', '骂', '麻', '码', '玛', '蚂', '蟆', '嘛', '马', '妈', '骂', '麻', '码', '玛', '蚂', '蟆', '嘛', '马', '妈', '骂', '麻', '码', '玛', '蚂', '蟆', '嘛', '马', '妈', '骂', '麻', '码', '玛', '蚂', '蟆', '嘛'],
+            'n': ['那', '哪', '娜', '纳', '拿', '南', '男', '难', '闹', '脑', '恼', '挠', '淖', '那', '哪', '娜', '纳', '拿', '南', '男', '难', '闹', '脑', '恼', '挠', '淖', '那', '哪', '娜', '纳', '拿', '南', '男', '难', '闹', '脑', '恼', '挠', '淖', '那', '哪', '娜', '纳', '拿', '南', '男', '难', '闹', '脑', '恼', '挠', '淖', '那', '哪', '娜', '纳', '拿', '南', '男', '难', '闹', '脑', '恼', '挠', '淖', '那', '哪', '娜', '纳', '拿', '南', '男', '难', '闹', '脑', '恼', '挠', '淖', '那', '哪', '娜', '纳', '拿', '南', '男', '难', '闹', '脑', '恼', '挠', '淖', '那', '哪', '娜', '纳', '拿', '南', '男', '难', '闹', '脑', '恼', '挠'],
+            'o': ['哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦', '哦'],
+            'p': ['怕', '爬', '趴', '帕', '琶', '牌', '排', '派', '潘', '攀', '畔', '判', '叛', '乓', '旁', '胖', '庞', '刨', '袍', '跑', '泡', '炮', '抛', '咆', '佩', '配', '沛', '盆', '砰', '抨', '烹', '澎', '彭', '蓬', '棚', '硼', '篷', '膨', '朋', '鹏', '捧', '碰', '批', '劈', '霹', '皮', '疲', '啤', '脾', '匹', '痞', '僻', '屁', '譬', '篇', '偏', '片', '骗', '拼', '频', '贫', '品', '聘', '乒', '平', '评', '屏', '瓶', '萍', '泼', '坡', '颇', '婆', '破', '魄', '迫', '粕', '剖', '仆', '扑', '铺', '朴', '菩', '蒲', '葡', '普', '谱', '曝', '瀑'],
+            'q': ['期', '其', '奇', '骑', '棋', '旗', '齐', '歧', '畦', '崎', '脐', '齐', '歧', '畦', '崎', '脐', '齐', '歧', '畦', '崎', '脐', '齐', '歧', '畦', '崎', '脐', '齐', '歧', '畦', '崎', '脐', '齐', '歧', '畦', '崎', '脐', '齐', '歧', '畦', '崎', '脐', '齐', '歧', '畦', '崎', '脐', '齐', '歧', '畦', '崎', '脐', '齐', '歧', '畦', '崎', '脐', '齐', '歧', '畦', '崎', '脐', '齐', '歧', '畦', '崎', '脐', '齐', '歧', '畦', '崎', '脐', '齐', '歧', '畦', '崎', '脐', '齐', '歧', '畦', '崎', '脐', '齐', '歧', '畦', '崎', '脐', '齐', '歧', '畦', '崎', '脐', '齐', '歧', '畦', '崎', '脐', '齐', '歧', '畦', '崎', '脐'],
+            'r': ['日', '人', '认', '任', '刃', '壬', '仁', '稔', '忍', '韧', '纫', '扔', '仍', '容', '溶', '熔', '融', '蓉', '荣', '容', '溶', '熔', '融', '蓉', '荣', '容', '溶', '熔', '融', '蓉', '荣', '容', '溶', '熔', '融', '蓉', '荣', '容', '溶', '熔', '融', '蓉', '荣', '容', '溶', '熔', '融', '蓉', '荣', '容', '溶', '熔', '融', '蓉', '荣', '容', '溶', '熔', '融', '蓉', '荣', '容', '溶', '熔', '融', '蓉', '荣', '容', '溶', '熔', '融', '蓉', '荣', '容', '溶', '熔', '融', '蓉', '荣', '容', '溶', '熔', '融', '蓉', '荣', '容', '溶', '熔', '融', '蓉', '荣', '容', '溶', '熔', '融', '蓉', '荣', '容', '溶', '熔', '融', '蓉', '荣'],
+            's': ['是', '事', '试', '市', '示', '式', '世', '势', '适', '室', '逝', '释', '饰', '视', '侍', '仕', '似', '寺', '嗣', '肆', '撕', '思', '丝', '私', '司', '斯', '死', '肆', '寺', '嗣', '司', '斯', '死', '肆', '寺', '嗣', '司', '斯', '死', '肆', '寺', '嗣', '司', '斯', '死', '肆', '寺', '嗣', '司', '斯', '死', '肆', '寺', '嗣', '司', '斯', '死', '肆', '寺', '嗣', '司', '斯', '死', '肆', '寺', '嗣', '司', '斯', '死', '肆', '寺', '嗣', '司', '斯', '死', '肆', '寺', '嗣', '司', '斯', '死', '肆', '寺', '嗣', '司', '斯', '死', '肆', '寺', '嗣', '司', '斯', '死', '肆', '寺', '嗣'],
+            't': ['他', '她', '它', '塔', '踏', '塌', '榻', '闼', '遢', '沓', '挞', '达', '妲', '怛', '笪', '答', '瘩', '搭', '嗒', '瘩', '打', '大', '达', '妲', '怛', '笪', '答', '瘩', '搭', '嗒', '瘩', '打', '大', '达', '妲', '怛', '笪', '答', '瘩', '搭', '嗒', '瘩', '打', '大', '达', '妲', '怛', '笪', '答', '瘩', '搭', '嗒', '瘩', '打', '大', '达', '妲', '怛', '笪', '答', '瘩', '搭', '嗒', '瘩', '打', '大', '达', '妲', '怛', '笪', '答', '瘩', '搭', '嗒', '瘩', '打', '大', '达', '妲', '怛', '笪', '答', '瘩', '搭', '嗒', '瘩', '打', '大', '达', '妲', '怛', '笪', '答', '瘩', '搭', '嗒', '瘩', '打', '大', '达', '妲', '怛', '笪', '答', '瘩', '搭', '嗒'],
+            'u': ['无', '屋', '乌', '污', '巫', '诬', '呜', '钨', '邬', '吾', '吴', '捂', '伍', '武', '五', '午', '勿', '务', '物', '悟', '晤', '舞', '侮', '坞', '戊', '雾', '晤', '梧', '蜈', '五', '午', '勿', '务', '物', '悟', '晤', '舞', '侮', '坞', '戊', '雾', '晤', '梧', '蜈', '五', '午', '勿', '务', '物', '悟', '晤', '舞', '侮', '坞', '戊', '雾', '晤', '梧', '蜈', '五', '午', '勿', '务', '物', '悟', '晤', '舞', '侮', '坞', '戊', '雾', '晤', '梧', '蜈', '五', '午', '勿', '务', '物', '悟', '晤', '舞', '侮', '坞', '戊', '雾', '晤', '梧', '蜈', '五', '午', '勿', '务', '物', '悟', '晤', '舞', '侮', '坞', '戊', '雾', '晤', '梧', '蜈', '五', '午', '勿', '务', '物', '悟', '晤'],
+            'v': ['万', '玩', '晚', '碗', '弯', '湾', '完', '丸', '顽', '烷', '婉', '腕', '惋', '宛', '碗', '弯', '湾', '完', '丸', '顽', '烷', '婉', '腕', '惋', '宛', '碗', '弯', '湾', '完', '丸', '顽', '烷', '婉', '腕', '惋', '宛', '碗', '弯', '湾', '完', '丸', '顽', '烷', '婉', '腕', '惋', '宛', '碗', '弯', '湾', '完', '丸', '顽', '烷', '婉', '腕', '惋', '宛', '碗', '弯', '湾', '完', '丸', '顽', '烷', '婉', '腕', '惋', '宛', '碗', '弯', '湾', '完', '丸', '顽', '烷', '婉', '腕', '惋', '宛', '碗', '弯', '湾', '完', '丸', '顽', '烷', '婉', '腕', '惋', '宛', '碗', '弯', '湾', '完', '丸', '顽', '烷', '婉', '腕', '惋', '宛', '碗', '弯', '湾', '完', '丸', '顽', '烷'],
+            'w': ['万', '玩', '晚', '碗', '弯', '湾', '完', '丸', '顽', '烷', '婉', '腕', '惋', '宛', '碗', '弯', '湾', '完', '丸', '顽', '烷', '婉', '腕', '惋', '宛', '碗', '弯', '湾', '完', '丸', '顽', '烷', '婉', '腕', '惋', '宛', '碗', '弯', '湾', '完', '丸', '顽', '烷', '婉', '腕', '惋', '宛', '碗', '弯', '湾', '完', '丸', '顽', '烷', '婉', '腕', '惋', '宛', '碗', '弯', '湾', '完', '丸', '顽', '烷', '婉', '腕', '惋', '宛', '碗', '弯', '湾', '完', '丸', '顽', '烷', '婉', '腕', '惋', '宛', '碗', '弯', '湾', '完', '丸', '顽', '烷', '婉', '腕', '惋', '宛', '碗', '弯', '湾', '完', '丸', '顽', '烷', '婉', '腕', '惋', '宛', '碗', '弯', '湾', '完', '丸', '顽', '烷'],
+            'x': ['先', '仙', '鲜', '闲', '贤', '咸', '弦', '显', '险', '县', '现', '献', '线', '限', '羡', '宪', '陷', '馅', '相', '香', '乡', '详', '祥', '翔', '享', '响', '想', '项', '象', '像', '向', '巷', '橡', '镶', '厢', '箱', '湘', '襄', '镶', '香', '乡', '详', '祥', '翔', '享', '响', '想', '项', '象', '像', '向', '巷', '橡', '镶', '厢', '箱', '湘', '襄', '镶', '香', '乡', '详', '祥', '翔', '享', '响', '想', '项', '象', '像', '向', '巷', '橡', '镶', '厢', '箱', '湘', '襄', '镶', '香', '乡', '详', '祥', '翔', '享', '响', '想', '项', '象', '像', '向', '巷', '橡', '镶', '厢', '箱', '湘', '襄', '镶'],
+            'y': ['一', '衣', '医', '依', '伊', '仪', '宜', '移', '遗', '疑', '乙', '已', '以', '矣', '易', '异', '议', '译', '驿', '役', '抑', '逸', '溢', '诣', '疫', '亿', '忆', '艺', '臆', '屹', '亦', '奕', '益', '义', '意', '毅', '翼', '翌', '绎', '懿', '肄', '裔', '溢', '诣', '疫', '亿', '忆', '艺', '臆', '屹', '亦', '奕', '益', '义', '意', '毅', '翼', '翌', '绎', '懿', '肄', '裔', '溢', '诣', '疫', '亿', '忆', '艺', '臆', '屹', '亦', '奕', '益', '义', '意', '毅', '翼', '翌', '绎', '懿', '肄', '裔', '溢', '诣', '疫', '亿', '忆', '艺', '臆', '屹', '亦', '奕', '益', '义', '意', '毅', '翼', '翌', '绎', '懿', '肄', '裔'],
+            'z': ['在', '再', '宰', '载', '栽', '宰', '载', '栽', '宰', '载', '栽', '宰', '载', '栽', '宰', '载', '栽', '宰', '载', '栽', '宰', '载', '栽', '宰', '载', '栽', '宰', '载', '栽', '宰', '载', '栽', '宰', '载', '栽', '宰', '载', '栽', '宰', '载', '栽', '宰', '载', '栽', '宰', '载', '栽', '宰', '载', '栽', '宰', '载', '栽', '宰', '载', '栽', '宰', '载', '栽', '宰', '载', '栽', '宰', '载', '栽', '宰', '载', '栽', '宰', '载', '栽', '宰', '载', '栽', '宰', '载', '栽', '宰', '载', '栽', '宰', '载', '栽', '宰', '载', '栽', '宰', '载', '栽', '宰', '载', '栽', '宰', '载', '栽', '宰', '载', '栽', '宰', '载', '栽', '宰']
+          };
+          
+          // 常用药品的拼音映射
+          const medicinePinyinMap = {
+            'buluofen': '布洛芬',
+            'amoxilin': '阿莫西林',
+            'ganmaoling': '感冒灵',
+            'kangshengsu': '抗生素',
+            'xiaoyanpian': '消炎片',
+            'xiaosuanluyipin': '盐酸氯己定',
+            'shuanghuanglian': '双黄连',
+            'huoxiangzhengqi': '藿香正气',
+            'lianhuqin': '连花清',
+            'nuhuangpian': '牛黄片',
+            'yanganling': '养肝灵',
+            'baishudan': '柏舒丹',
+            'shule' : '舒乐',
+            'baobaoshule' : '宝宝舒乐',
+            'kangganmao' : '抗感冒',
+            'kangkui' : '抗溃',
+            'kangxin' : '康心',
+            'kangyain' : '抗癌',
+            'kangyike' : '康易克',
+            'kangyimiao' : '康亿妙',
+            'kangyike' : '康易克',
+            'kangyimiao' : '康亿妙',
+            'kangyike' : '康易克',
+            'kangyimiao' : '康亿妙',
+            'kangyike' : '康易克',
+            'kangyimiao' : '康亿妙'
+          };
+          
+          // 检查是否匹配药品的完整拼音
+          for (const pinyin in medicinePinyinMap) {
+            if (pinyin.includes(lowercaseQuery) || medicinePinyinMap[pinyin].includes(lowercaseQuery)) {
+              if (str.includes(medicinePinyinMap[pinyin])) {
+                return true;
+              }
+            }
+          }
+          
+          // 检查是否匹配拼音首字母
+          let pinyinStr = '';
+          for (let i = 0; i < lowercaseStr.length; i++) {
+            const char = lowercaseStr[i];
+            let found = false;
+            for (const pinyin in pinyinMap) {
+              if (pinyinMap[pinyin].includes(char)) {
+                pinyinStr += pinyin;
+                found = true;
+                break;
+              }
+            }
+            if (!found) {
+              pinyinStr += char;
+            }
+          }
+          
+          // 检查拼音首字母是否匹配
+          if (pinyinStr.includes(lowercaseQuery)) {
+            return true;
+          }
+          
+          return false;
+        }
+
+        /**
+         * 显示通知
+         */
+        function showNotification(message, isError = false) {
+          if (!notification || !notificationText) {
+            console.log('通知:', message, isError ? '(错误)' : '');
+            return;
+          }
+          
+          notificationText.textContent = message;
+          notification.className = 'notification';
+          
+          if (isError) {
+            notification.classList.add('error');
+            notification.querySelector('i').className = 'fas fa-exclamation-circle';
+          } else {
+            notification.querySelector('i').className = 'fas fa-check-circle';
+          }
+          
+          notification.classList.add('show');
+          
+          setTimeout(() => {
+            notification.classList.remove('show');
+          }, 3000);
+        }
+
+        // 测试Supabase连接
+        async function testSupabaseConnection() {
+          try {
+            console.log('测试Supabase连接...');
+            
+            const testResponse = await fetch(`${SUPABASE_CONFIG.url}/rest/v1/medicines?limit=1`, {
+              headers: {
+                'apikey': SUPABASE_CONFIG.key,
+                'Authorization': `Bearer ${SUPABASE_CONFIG.key}`
+              }
+            });
+            
+            console.log('连接测试结果:', testResponse.status, testResponse.statusText);
+            
+            if (!testResponse.ok) {
+              const errorText = await testResponse.text();
+              console.error('连接测试失败:', errorText);
+              showNotification('Supabase连接失败，请检查API配置', true);
+            } else {
+              console.log('Supabase连接成功');
+            }
+          } catch (error) {
+            console.error('连接测试异常:', error);
+            showNotification(`网络连接异常: ${error.message}`, true);
+          }
+        }
+
+    </script>
+  </body>
+</html>
